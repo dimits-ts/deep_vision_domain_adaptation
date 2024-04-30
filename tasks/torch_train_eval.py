@@ -29,13 +29,11 @@ def train_model(
         output_dir: str,
         num_epochs: int = 25,
         patience: int = 1,
+        warmup_period: int = 10,
         previous_history: dict[str, list[float]] = None,
 ) -> tuple[nn.Module, dict[str, np.ndarray]]:
     dataloaders = {"train": train_dataloader, "val": val_dataloader}
-    dataset_sizes = {
-        "train": len(train_dataloader.dataset),
-        "val": len(val_dataloader.dataset),
-    }
+
     output_model_path = os.path.join(output_dir, "model.pt")
     output_history_path = os.path.join(output_dir, "history.pickle")
 
@@ -64,7 +62,6 @@ def train_model(
             criterion,
             scheduler,
             dataloaders,
-            dataset_sizes,
             device,
         )
         print(
@@ -80,10 +77,11 @@ def train_model(
             torch.save(model.state_dict(), output_model_path)
             epochs_no_progress = 0
         else:
-            epochs_no_progress += 1
+            if warmup_period <= epoch:
+                epochs_no_progress += 1
 
         # early stopping mechanism
-        if epochs_no_progress >= patience:
+        if warmup_period <= epoch and epochs_no_progress >= patience:
             break
 
     time_elapsed = time.time() - since
@@ -118,7 +116,6 @@ def run_epoch(
         criterion,
         scheduler,
         dataloaders,
-        dataset_sizes,
         device: str,
 ) -> EpochResults:
     train_loss, train_acc = train_epoch(
@@ -127,11 +124,10 @@ def run_epoch(
         criterion,
         scheduler,
         dataloaders["train"],
-        dataset_sizes["train"],
         device,
     )
     val_loss, val_acc = val_epoch(
-        model, criterion, dataloaders["val"], dataset_sizes["val"], device
+        model, criterion, dataloaders["val"], device
     )
     return EpochResults(
         train_loss=train_loss,
@@ -147,7 +143,6 @@ def train_epoch(
         criterion,
         scheduler,
         dataloader,
-        dataset_size,
         device: str,
 ) -> tuple[float, float]:
     # Each epoch has a training and validation phase
@@ -157,8 +152,10 @@ def train_epoch(
     running_loss = 0.0
     running_corrects = 0
 
+    samples = 0
     # Iterate over data.
     for inputs, labels in tqdm(dataloader):
+        samples += len(labels)
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -181,8 +178,8 @@ def train_epoch(
         running_loss += loss.item() * inputs.size(0)
         running_corrects += torch.sum(preds == labels.data)
 
-    epoch_loss = running_loss / dataset_size
-    epoch_acc = running_corrects.double().cpu() / dataset_size
+    epoch_loss = running_loss / samples
+    epoch_acc = running_corrects.double().cpu() / samples
 
     train_loss = epoch_loss
     train_acc = epoch_acc
@@ -191,15 +188,17 @@ def train_epoch(
 
 
 def val_epoch(
-        model: nn.Module, criterion, dataloader, dataset_size, device: str
+        model: nn.Module, criterion, dataloader, device: str
 ) -> tuple[float, float]:
     model.eval()  # Set model to evaluate mode
 
     running_loss = 0.0
     running_corrects = 0
 
+    samples = 0
     # Iterate over data.
     for inputs, labels in tqdm(dataloader):
+        samples += len(labels)
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -212,8 +211,8 @@ def val_epoch(
         running_loss += loss.item() * inputs.size(0)
         running_corrects += torch.sum(preds == labels.data)
 
-    epoch_loss = running_loss / dataset_size
-    epoch_acc = running_corrects.double().cpu() / dataset_size
+    epoch_loss = running_loss / samples
+    epoch_acc = running_corrects.double().cpu() / samples
 
     return epoch_loss, epoch_acc
 
