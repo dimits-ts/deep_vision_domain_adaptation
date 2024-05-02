@@ -17,7 +17,6 @@ class ImageDataset(torch.utils.data.Dataset):
 
     def __init__(
             self,
-            data_dir: str,
             parser_func: Callable,
             preprocessing_func: Callable[[np.ndarray], np.ndarray],
             label_encoder=None,
@@ -25,7 +24,6 @@ class ImageDataset(torch.utils.data.Dataset):
         """
         Initializes the ImageDataset.
 
-        :param str data_dir: Root directory containing the dataset.
         :param parser_func: Function to parse images.
         :type parser_func: Callable, optional
         :param preprocessing_func: Function to preprocess images.
@@ -36,7 +34,27 @@ class ImageDataset(torch.utils.data.Dataset):
         self.parser_func = parser_func
         self.preprocessing_func = preprocessing_func
         self.label_encoder = label_encoder
-        self.samples = self._load_dataset_paths(data_dir)
+        self.samples = []
+        # to keep track of registered files quickly
+        self.paths = set()
+
+    def load_from_directory(self, data_dir: str):
+        """
+        Load all image samples from a directory.
+        :param str data_dir: Root directory containing the dataset.
+        :return:
+        """
+        self._load_dataset_paths(data_dir)
+
+    def add(self, image_path: str, encoded_label: int) -> None:
+        self._insert_sample(image_path, encoded_label)
+
+    def remove(self, image_path: str):
+        if image_path in self.paths:
+            self.paths.remove(image_path)
+            self.samples = [sample for sample in self.samples if sample[0] != image_path]
+        else:
+            print("Warning: Removal failed: could not find ", image_path, " in the dataset.")
 
     def __len__(self):
         return len(self.samples)
@@ -51,7 +69,12 @@ class ImageDataset(torch.utils.data.Dataset):
 
         return image, label
 
-    def _load_dataset_paths(self, data_dir):
+    def _insert_sample(self, image_path: str, encoded_label: int):
+        if image_path not in self.paths:
+            self.paths.add(image_path)
+            self.samples.append((image_path, encoded_label))
+
+    def _load_dataset_paths(self, data_dir: str) -> None:
         """
         Loads paths of images in the dataset.
 
@@ -65,59 +88,34 @@ class ImageDataset(torch.utils.data.Dataset):
             self.label_encoder = sklearn.preprocessing.LabelEncoder()
             self.label_encoder.fit(class_names)
 
-        samples = []
         for class_name in tqdm(class_names):
             class_data_dir = os.path.join(data_dir, class_name)
 
             for file_name in os.listdir(class_data_dir):
-                samples.append(
-                    (
-                        os.path.join(class_data_dir, file_name),
-                        self.label_encoder.transform([class_name])[0],
-                    )
-                )
-
-        return samples
+                self._insert_sample(os.path.join(class_data_dir, file_name),
+                                    self.label_encoder.transform([class_name])[0])
 
 
-def train_val_test_loaders(
-        dataset,
-        batch_size: int,
-        val_split_perc: float,
-        test_split_perc: float,
-        collate_func: Callable,
-):
-    dataset_size = len(dataset)
+class UnlabeledImageDataset(ImageDataset):
 
-    # Create indices for the dataset
-    indices = list(range(dataset_size))
-    np.random.shuffle(indices)
+    def __init__(
+            self,
+            parser_func: Callable,
+            preprocessing_func: Callable[[np.ndarray], np.ndarray],
+    ):
+        super().__init__(parser_func=parser_func, preprocessing_func=preprocessing_func, label_encoder=None)
 
-    # Calculate split indices
-    val_split = int(np.floor(val_split_perc * dataset_size))
-    test_split = int(np.floor(test_split_perc * dataset_size))
+    def __getitem__(self, idx):
+        # hide label
+        image_path, _ = self.samples[idx]
+        image = self.parser_func(image_path)
+        image = self.preprocessing_func(image)
 
-    # Split indices for train, validation, and test
-    train_indices = indices[val_split + test_split:]
-    val_indices = indices[:val_split]
-    test_indices = indices[val_split: (val_split + test_split)]
+        if not torch.is_tensor(image):
+            image = torch.tensor(image)
 
-    # Create PT data samplers and loaders
-    train_sampler = SubsetRandomSampler(train_indices)
-    val_sampler = SubsetRandomSampler(val_indices)
-    test_sampler = SubsetRandomSampler(test_indices)
-
-    train_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, sampler=train_sampler, collate_fn=collate_func
-    )
-    val_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, sampler=val_sampler, collate_fn=collate_func
-    )
-    test_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, sampler=test_sampler, collate_fn=collate_func
-    )
-
-    return train_loader, val_loader, test_loader
+        # instead of label return path
+        return image, image_path
 
 
 def collate_pad(batch):
