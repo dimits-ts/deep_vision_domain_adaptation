@@ -8,8 +8,6 @@ import pickle
 import os
 
 
-# code adapted from https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
-
 class EpochResults:
     def __init__(self, train_loss, train_acc, val_loss, val_acc) -> None:
         self.train_loss = train_loss
