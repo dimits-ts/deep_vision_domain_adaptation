@@ -51,7 +51,8 @@ def train_adaptive_model(
         device: str,
         source_train_dataset: tasks.data.ImageDataset,
         source_val_dataset: tasks.data.ImageDataset,
-        source_dataloader_initializer: Callable[[tasks.data.ImageDataset], torch.utils.data.DataLoader],
+        labeled_dataloader_initializer: Callable[[tasks.data.ImageDataset], torch.utils.data.DataLoader],
+        unlabeled_dataloader_initializer: Callable[[tasks.data.UnlabeledImageDataset], torch.utils.data.DataLoader],
         target_train_dataset: tasks.data.UnlabeledImageDataset,
         target_val_dataset: tasks.data.UnlabeledImageDataset,
         output_dir: str,
@@ -61,8 +62,8 @@ def train_adaptive_model(
 ) -> tuple[nn.Module, dict[str, np.ndarray], dict[str, np.ndarray]]:
     original_target_samples_num = len(target_train_dataset)  # for printing
 
-    dataloaders = {"train": source_dataloader_initializer(source_train_dataset),
-                   "val": source_dataloader_initializer(source_val_dataset)}
+    dataloaders = {"train": labeled_dataloader_initializer(source_train_dataset),
+                   "val": labeled_dataloader_initializer(source_val_dataset)}
 
     output_model_path = os.path.join(output_dir, "model.pt")
     output_history_path_source = os.path.join(output_dir, "source_history.pickle")
@@ -96,6 +97,7 @@ def train_adaptive_model(
         # ========= Normal forward and backward pass =========
         print(f"Epoch {epoch}/{num_epochs - 1}")
         print("-" * 10)
+
         source_res = tasks.torch_train_eval.run_epoch(
             model,
             optimizer,
@@ -104,22 +106,13 @@ def train_adaptive_model(
             dataloaders,
             device,
         )
-        print(
-            f"Train Loss: {source_res.train_loss:.4f} Train Acc: {source_res.train_acc:.4f}\n"
-            f"Val Loss: {source_res.val_loss:.4f} Val Acc: {source_res.val_acc:.4f}"
-        )
         source_history = tasks.torch_train_eval.update_save_history(source_history,
                                                                     source_res,
                                                                     output_history_path_source)
 
-        # deep copy the model
-        if source_res.val_acc > best_acc:
-            best_acc = source_res.val_acc
-            torch.save(model.state_dict(), output_model_path)
-
         # ========= Add statistics for target dataset =========
         target_val_loss, target_val_acc = tasks.torch_train_eval.val_epoch(
-            model, criterion, target_val_dataset, device
+            model, criterion, labeled_dataloader_initializer(target_val_dataset), device
         )
         # I will ignore training statistics for now (since the training data is supposed to be unlabeled)
         target_res = tasks.torch_train_eval.EpochResults(train_loss=0,
@@ -130,17 +123,30 @@ def train_adaptive_model(
                                                                     output_history_path_target)
 
         # ========= Pseudo-labeling task =========
-        threshold = adaptive_threshold(classification_accuracy=source_res.val_acc)
-        samples = select_samples(model, target_train_dataset, threshold, device)
+        #threshold = adaptive_threshold(classification_accuracy=source_res.val_acc)
+        threshold = adaptive_threshold(classification_accuracy=0.8)
+        samples = select_samples(model, unlabeled_dataloader_initializer(target_train_dataset), threshold, device)
 
-        print(f"Selected {len(samples)}/{original_target_samples_num} images to be included in next epoch")
+        print(f"Selected {len(samples[0])}/{original_target_samples_num} images to be included in next epoch")
         for image_path, class_id in zip(samples[0], samples[1]):
             # update datasets and recreate dataloaders
             target_train_dataset.remove(image_path)
 
             source_train_dataset.add(image_path, class_id)
-            source_train_loader = source_dataloader_initializer(source_train_dataset)
+            source_train_loader = labeled_dataloader_initializer(source_train_dataset)
             dataloaders["train"] = source_train_loader
+
+        # deep copy the model
+        if target_val_acc > best_acc:
+            best_acc = target_val_acc
+            torch.save(model.state_dict(), output_model_path)
+
+        # ========= Print & checkpoint =========
+        print(
+            f"source dataset Train Loss: {source_res.train_loss:.4f} Train Acc: {source_res.train_acc:.4f}\n"
+            f"Source dataset Val Loss: {source_res.val_loss:.4f} Val Acc: {source_res.val_acc:.4f}\n"
+            f"Target dataset Val Loss: {target_res.val_loss:.4f} Val Acc: {target_res.val_acc:.4f}"
+        )
 
     time_elapsed = time.time() - since
     print(f"Training complete in {time_elapsed // 60:.0f}m {time_elapsed % 60:.0f}s")

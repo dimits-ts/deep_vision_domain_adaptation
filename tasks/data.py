@@ -106,6 +106,8 @@ class UnlabeledImageDataset(ImageDataset):
         super().__init__(parser_func=parser_func, preprocessing_func=preprocessing_func, label_encoder=None)
 
     def load_from_image_dataset(self, dataset: ImageDataset):
+        for image_path, _ in dataset.samples:
+            self.paths.add(image_path)
         self.samples = dataset.samples
 
     def __getitem__(self, idx):
