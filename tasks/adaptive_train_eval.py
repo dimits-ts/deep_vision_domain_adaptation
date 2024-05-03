@@ -74,8 +74,6 @@ def train_adaptive_model(
             "train_acc": [],
             "val_loss": [],
             "val_acc": [],
-            "target_val_loss": [],
-            "target_val_acc": []
         }
     else:
         source_history = previous_source_history
@@ -86,8 +84,6 @@ def train_adaptive_model(
             "train_acc": [],
             "val_loss": [],
             "val_acc": [],
-            "target_val_loss": [],
-            "target_val_acc": []
         }
     else:
         target_history = previous_source_history
