@@ -19,7 +19,7 @@ def adaptive_threshold(classification_accuracy: float, rho: float = 3) -> float:
 
 
 def select_samples(
-        model: nn.Module, dataset, threshold: float, device: str
+    model: nn.Module, dataset, threshold: float, device: str
 ) -> tuple[list[str], list[int]]:
     selected_samples_ls = []
     predicted_labels_ls = []
@@ -45,28 +45,33 @@ def select_samples(
 
 
 def train_adaptive_model(
-        model: nn.Module,
-        criterion,
-        optimizer,
-        scheduler,
-        device: str,
-        source_train_dataset: tasks.data.ImageDataset,
-        source_val_dataset: tasks.data.ImageDataset,
-        labeled_dataloader_initializer: Callable[[tasks.data.ImageDataset], torch.utils.data.DataLoader],
-        unlabeled_dataloader_initializer: Callable[[tasks.data.UnlabeledImageDataset], torch.utils.data.DataLoader],
-        unlabeled_target_train_dataset: tasks.data.UnlabeledImageDataset,
-        target_val_dataset: tasks.data.ImageDataset,
-        output_dir: str,
-        num_epochs: int = 25,
-        previous_source_history: dict[str, list[float]] = None,
-        previous_target_history: dict[str, list[float]] = None
+    model: nn.Module,
+    criterion,
+    optimizer,
+    scheduler,
+    device: str,
+    source_train_dataset: tasks.data.ImageDataset,
+    source_val_dataset: tasks.data.ImageDataset,
+    labeled_dataloader_initializer: Callable[
+        [tasks.data.ImageDataset], torch.utils.data.DataLoader
+    ],
+    unlabeled_dataloader_initializer: Callable[
+        [tasks.data.UnlabeledImageDataset], torch.utils.data.DataLoader
+    ],
+    unlabeled_target_train_dataset: tasks.data.UnlabeledImageDataset,
+    target_val_dataset: tasks.data.ImageDataset,
+    output_dir: str,
+    num_epochs: int = 25,
+    previous_source_history: dict[str, list[float]] = None,
+    previous_target_history: dict[str, list[float]] = None,
 ) -> tuple[nn.Module, dict[str, np.ndarray], dict[str, np.ndarray]]:
     unlabeled_target_train_dataset = copy.deepcopy(unlabeled_target_train_dataset)
 
     # this is where we will separately store the pseudo-labeled data at each epoch
     pseudolabeled_target_train_dataset = tasks.data.ImageDataset(
         parser_func=unlabeled_target_train_dataset.parser_func,
-        preprocessing_func=unlabeled_target_train_dataset.preprocessing_func)
+        preprocessing_func=unlabeled_target_train_dataset.preprocessing_func,
+    )
 
     output_model_path = os.path.join(output_dir, "model.pt")
     output_history_path_source = os.path.join(output_dir, "source_history.pickle")
@@ -97,19 +102,24 @@ def train_adaptive_model(
     best_acc = 0.0
 
     # get first estimate of classifier accuracy
-    _, last_val_acc = tasks.torch_train_eval.val_epoch(model,
-                                                       criterion,
-                                                       labeled_dataloader_initializer(source_val_dataset),
-                                                       device)
+    _, last_val_acc = tasks.torch_train_eval.val_epoch(
+        model, criterion, labeled_dataloader_initializer(source_val_dataset), device
+    )
 
     for epoch in range(num_epochs):
         # ========= Pseudo-labeling task =========
         threshold = adaptive_threshold(classification_accuracy=last_val_acc)
-        samples = select_samples(model, unlabeled_dataloader_initializer(unlabeled_target_train_dataset), threshold,
-                                 device)
+        samples = select_samples(
+            model,
+            unlabeled_dataloader_initializer(unlabeled_target_train_dataset),
+            threshold,
+            device,
+        )
 
-        print(f"Selected {len(samples[0])}/{len(unlabeled_target_train_dataset)} remaining images to be included in "
-              f"next epoch")
+        print(
+            f"Selected {len(samples[0])}/{len(unlabeled_target_train_dataset)} remaining images to be included in "
+            f"next epoch"
+        )
         for image_path, class_id in zip(samples[0], samples[1]):
             # update datasets and recreate dataloaders
             unlabeled_target_train_dataset.remove(image_path)
@@ -119,8 +129,12 @@ def train_adaptive_model(
         print("-" * 10)
 
         # ========= Target domain forward and backward pass =========
-        target_dataloaders = {"train": labeled_dataloader_initializer(pseudolabeled_target_train_dataset),
-                              "val": labeled_dataloader_initializer(target_val_dataset)}
+        target_dataloaders = {
+            "train": labeled_dataloader_initializer(
+                pseudolabeled_target_train_dataset
+            ),
+            "val": labeled_dataloader_initializer(target_val_dataset),
+        }
         target_res = tasks.torch_train_eval.run_epoch(
             model,
             optimizer,
@@ -129,9 +143,9 @@ def train_adaptive_model(
             target_dataloaders,
             device,
         )
-        target_history = tasks.torch_train_eval.update_save_history(target_history,
-                                                                    target_res,
-                                                                    output_history_path_target)
+        target_history = tasks.torch_train_eval.update_save_history(
+            target_history, target_res, output_history_path_target
+        )
 
         # ========= Source domain forward and backward pass =========
 
@@ -141,11 +155,16 @@ def train_adaptive_model(
         if source_num_samples == 0:
             source_num_samples = 20
 
-        indices = torch.randperm(len(source_train_dataset)).tolist()[:source_num_samples]
+        indices = torch.randperm(len(source_train_dataset)).tolist()[
+            :source_num_samples
+        ]
         subset_sampler = torch.utils.data.SubsetRandomSampler(indices)
-        source_dataloaders = {"train": labeled_dataloader_initializer(source_train_dataset,
-                                                                      sampler=subset_sampler),
-                              "val": labeled_dataloader_initializer(source_val_dataset)}
+        source_dataloaders = {
+            "train": labeled_dataloader_initializer(
+                source_train_dataset, sampler=subset_sampler
+            ),
+            "val": labeled_dataloader_initializer(source_val_dataset),
+        }
 
         source_res = tasks.torch_train_eval.run_epoch(
             model,
@@ -155,9 +174,9 @@ def train_adaptive_model(
             source_dataloaders,
             device,
         )
-        source_history = tasks.torch_train_eval.update_save_history(source_history,
-                                                                    source_res,
-                                                                    output_history_path_source)
+        source_history = tasks.torch_train_eval.update_save_history(
+            source_history, source_res, output_history_path_source
+        )
 
         # ========= Print, set acc & checkpoint =========
         # set new validation accuracy
