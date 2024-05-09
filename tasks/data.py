@@ -3,9 +3,11 @@ import torch
 import numpy as np
 from tqdm.auto import tqdm
 import sklearn.preprocessing
+from sklearn.model_selection import train_test_split
 
 from typing import Callable
 import os
+import random
 
 
 class ImageDataset(torch.utils.data.Dataset):
@@ -148,3 +150,84 @@ def collate_pad(batch):
     labels = torch.tensor([label for _, label in padded_batch])
 
     return images, labels
+
+
+# ======== Image dataset manipulation functions ======
+
+def train_val_test_split(
+        dataset: ImageDataset, val_ratio: float, test_ratio: float
+):
+    """
+    Splits into pure ImageDataset objects, not Subsets, to allow for dynamic changes in the
+    underlying data using the custom class API.
+    """
+    train_ratio = 1 - val_ratio - test_ratio
+
+    total_size = len(dataset)
+    train_size = int(train_ratio * total_size)
+    val_size = int(val_ratio * total_size)
+
+    # Split the dataset into train, validation, and test sets
+    train_dataset = ImageDataset(
+        parser_func=dataset.parser_func,
+        preprocessing_func=dataset.preprocessing_func,
+        label_encoder=dataset.label_encoder,
+    )
+    val_dataset = ImageDataset(
+        parser_func=dataset.parser_func,
+        preprocessing_func=dataset.preprocessing_func,
+        label_encoder=dataset.label_encoder,
+    )
+    test_dataset = ImageDataset(
+        parser_func=dataset.parser_func,
+        preprocessing_func=dataset.preprocessing_func,
+        label_encoder=dataset.label_encoder,
+    )
+
+    random.shuffle(dataset.samples)
+    for idx, sample in enumerate(dataset.samples):
+        if idx < train_size:
+            train_dataset.add(sample[0], sample[1])
+        elif idx < train_size + val_size:
+            val_dataset.add(sample[0], sample[1])
+        else:
+            test_dataset.add(sample[0], sample[1])
+
+    return train_dataset, val_dataset, test_dataset
+
+
+def stratified_split(
+        image_dataset: ImageDataset, test_size=0.2, random_state=None
+) -> tuple[ImageDataset, ImageDataset]:
+    data = image_dataset.samples
+    # Extract class labels
+    labels = [class_id for _, class_id in data]
+
+    # Split the data while preserving the class distribution
+    _, test_indices = train_test_split(
+        range(len(data)),
+        test_size=test_size,
+        stratify=labels,
+        random_state=random_state,
+    )
+
+    # Split the data based on the indices
+    test_data = [data[i] for i in test_indices]
+    train_data = [data[i] for i in range(len(data)) if i not in test_indices]
+
+    train_dataset = ImageDataset(
+        parser_func=image_dataset.parser_func,
+        preprocessing_func=image_dataset.preprocessing_func,
+    )
+    test_dataset = ImageDataset(
+        parser_func=image_dataset.parser_func,
+        preprocessing_func=image_dataset.preprocessing_func,
+    )
+
+    for train_sample in train_data:
+        train_dataset.add(train_sample[0], train_sample[1])
+
+    for test_sample in test_data:
+        test_dataset.add(test_sample[0], test_sample[1])
+
+    return train_dataset, test_dataset
