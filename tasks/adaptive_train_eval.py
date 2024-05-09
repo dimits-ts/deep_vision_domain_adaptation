@@ -64,7 +64,9 @@ def train_adaptive_model(
     num_epochs: int = 25,
     previous_source_history: dict[str, list[float]] = None,
     previous_target_history: dict[str, list[float]] = None,
-) -> tuple[nn.Module, dict[str, np.ndarray], dict[str, np.ndarray]]:
+) -> tuple[nn.Module, dict[str, np.ndarray], dict[str, np.ndarray], list[list[tuple[str, int]]]]:
+    # a list containing the selected pseudo labeled samples for each epoch
+    pseudo_label_history = []
     unlabeled_target_train_dataset = copy.deepcopy(unlabeled_target_train_dataset)
 
     # this is where we will separately store the pseudo-labeled data at each epoch
@@ -95,57 +97,15 @@ def train_adaptive_model(
             "val_acc": [],
         }
     else:
-        target_history = previous_source_history
+        target_history = previous_target_history
 
     since = time.time()
     torch.save(model.state_dict(), output_model_path)
     best_acc = 0.0
 
-    # get first estimate of classifier accuracy
-    _, last_val_acc = tasks.torch_train_eval.val_epoch(
-        model, criterion, labeled_dataloader_initializer(source_val_dataset), device
-    )
-
     for epoch in range(num_epochs):
-        # ========= Pseudo-labeling task =========
-        threshold = adaptive_threshold(classification_accuracy=last_val_acc)
-        samples = select_samples(
-            model,
-            unlabeled_dataloader_initializer(unlabeled_target_train_dataset),
-            threshold,
-            device,
-        )
-
-        print(
-            f"Selected {len(samples[0])}/{len(unlabeled_target_train_dataset)} remaining images to be included in "
-            f"next epoch"
-        )
-        for image_path, class_id in zip(samples[0], samples[1]):
-            # update datasets and recreate dataloaders
-            unlabeled_target_train_dataset.remove(image_path)
-            pseudolabeled_target_train_dataset.add(image_path, class_id)
-
         print(f"Epoch {epoch}/{num_epochs - 1}")
         print("-" * 10)
-
-        # ========= Target domain forward and backward pass =========
-        target_dataloaders = {
-            "train": labeled_dataloader_initializer(
-                pseudolabeled_target_train_dataset
-            ),
-            "val": labeled_dataloader_initializer(target_val_dataset),
-        }
-        target_res = tasks.torch_train_eval.run_epoch(
-            model,
-            optimizer,
-            criterion,
-            scheduler,
-            target_dataloaders,
-            device,
-        )
-        target_history = tasks.torch_train_eval.update_save_history(
-            target_history, target_res, output_history_path_target
-        )
 
         # ========= Source domain forward and backward pass =========
 
@@ -178,13 +138,56 @@ def train_adaptive_model(
             source_history, source_res, output_history_path_source
         )
 
-        # ========= Print, set acc & checkpoint =========
         # set new validation accuracy
         last_val_acc = source_res.val_acc
 
+        # ========= Pseudo-labeling task =========
+        threshold = adaptive_threshold(classification_accuracy=last_val_acc)
+        samples = select_samples(
+            model,
+            unlabeled_dataloader_initializer(unlabeled_target_train_dataset),
+            threshold,
+            device,
+        )
+
+        print(
+            f"Selected {len(samples[0])}/{len(unlabeled_target_train_dataset)} images to be included in "
+            f"next epoch"
+        )
+
+        pseudo_label_history.append([])
+        for image_path, class_id in zip(samples[0], samples[1]):
+            # update datasets and recreate dataloaders
+            unlabeled_target_train_dataset.remove(image_path)
+            pseudolabeled_target_train_dataset.add(image_path, class_id)
+
+            #update pseudo label history
+            pseudo_label_history[epoch].append((image_path, class_id))
+
+        # ========= Target domain forward and backward pass =========
+        target_dataloaders = {
+            "train": labeled_dataloader_initializer(
+                pseudolabeled_target_train_dataset
+            ),
+            "val": labeled_dataloader_initializer(target_val_dataset),
+        }
+        target_res = tasks.torch_train_eval.run_epoch(
+            model,
+            optimizer,
+            criterion,
+            scheduler,
+            target_dataloaders,
+            device,
+        )
+        target_history = tasks.torch_train_eval.update_save_history(
+            target_history, target_res, output_history_path_target
+        )
+
+        # ========= Print & checkpoint =========
+    
         # deep copy the model
-        if target_res.val_acc > best_acc:
-            best_acc = target_res.val_acc
+        if source_res.val_acc > best_acc:
+            best_acc = source_res.val_acc
             torch.save(model.state_dict(), output_model_path)
 
         print(
@@ -200,4 +203,4 @@ def train_adaptive_model(
     # load best model weights
     model.load_state_dict(torch.load(output_model_path))
 
-    return model, source_history, target_history
+    return model, source_history, target_history, pseudo_label_history

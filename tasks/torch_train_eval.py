@@ -46,7 +46,6 @@ def train_model(
         history = previous_history
 
     since = time.time()
-    torch.save(model.state_dict(), output_model_path)
     best_acc = 0.0
     # early stopping counter
     epochs_no_progress = 0
@@ -175,6 +174,8 @@ def train_epoch(
         # statistics
         running_loss += loss.item() * inputs.size(0)
         running_corrects += torch.sum(preds == labels.data)
+
+        #print(running_loss / samples)
 
     epoch_loss = running_loss / samples
     epoch_acc = running_corrects.double().cpu() / samples
