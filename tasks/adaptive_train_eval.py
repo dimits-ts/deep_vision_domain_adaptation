@@ -62,6 +62,7 @@ def train_adaptive_model(
         target_val_dataset: tasks.data.ImageDataset,
         output_dir: str,
         num_epochs: int = 25,
+        rho=3,
         previous_source_history: dict[str, list[float]] = None,
         previous_target_history: dict[str, list[float]] = None,
 ) -> tuple[
@@ -159,7 +160,7 @@ def train_adaptive_model(
             )
 
         # ========= Pseudo-labeling task =========
-        threshold = adaptive_threshold(classification_accuracy=last_val_acc)
+        threshold = adaptive_threshold(classification_accuracy=last_val_acc, rho=rho)
         samples = select_samples(
             model,
             unlabeled_dataloader_initializer(unlabeled_target_train_dataset),
@@ -168,8 +169,7 @@ def train_adaptive_model(
         )
 
         print(
-            f"Selected {len(samples[0])}/{len(unlabeled_target_train_dataset)} images to be included in "
-            f"next epoch"
+            f"Selected {len(samples[0])}/{len(unlabeled_target_train_dataset)} images on threshold {threshold}"
         )
 
         pseudo_label_history.append([])
