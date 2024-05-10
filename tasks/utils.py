@@ -1,6 +1,8 @@
 import torch
 
 import pickle
+import os
+from typing import Any
 
 
 def try_load_weights(model, weights_path: str):
@@ -20,3 +22,25 @@ def try_load_history(history_path):
         history = None
 
     return history
+
+
+def load_trained_model(bare_model: torch.nn.Module, training_dir: str) -> dict[str, Any]:
+    model = try_load_weights(
+        bare_model, os.path.join(training_dir, "model.pt")
+    )
+    source_history = try_load_history(
+        os.path.join(training_dir, "source_history.pickle")
+    )
+    target_history = try_load_history(
+        os.path.join(training_dir, "target_history.pickle")
+    )
+    label_history = try_load_history(
+        os.path.join(training_dir, "label_history.pickle")
+    )
+
+    return {
+        "model": model,
+        "source_history": source_history,
+        "target_history": target_history,
+        "label_history": label_history,
+    }
