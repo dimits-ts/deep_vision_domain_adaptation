@@ -1,0 +1,82 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[greek, british]{babel}
+\usepackage[round]{natbib} 
+\usepackage{alphabeta}
+\usepackage{libertine}
+\usepackage{csquotes}
+\usepackage[hyphens]{url} % Allow line breaks in URLs
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{mathtools}
+\graphicspath{ {./images/} }
+\usepackage[a4paper,margin=1in,footskip=0.25in]{geometry}
+\usepackage[nottoc,numbib]{tocbibind} % add Bib to ToC
+\bibliographystyle{abbrvnat}
+% \pagenumbering{arabic}
+
+\newcommand{\loss}{\mathcal{L}}
+\newcommand{\threshold}{\mathcal{T}}
+
+\def\code#1{\texttt{#1}}
+
+\title{\Huge Do It Yourself: Standalone Pseudo-labeling for Domain Adaptation in Deep Computer Vision}
+
+\author{\LARGE Tsirmpas Dimitris}
+
+\begin{document}
+	\begin{titlepage}
+		\maketitle
+		\thispagestyle{empty} % No page number on the first page
+			
+	\end{titlepage}
+	
+	\maketitle
+	
+	\pagenumbering{arabic} % Switch to Arabic numbering
+	
+	\section{Introduction}
+	
+	
+	\section{Related Works}
+	
+	\section{Pseudo-labeling for Classification Enhancement}
+	
+	\subsection{Model-agnostic Pseudo-labeling algorithm}
+	
+	We use a modified version of the iCAN algorithm \citep{ican}. The original iCAN algorithm was designed around a model created with the explicit purpose of learning domain-invariant features between the source and target datasets (CAN model). When the unmodified algorithm uses a generic deep model however a number of issues arise. Our approach seeks to remedy the most major such issues.
+	
+	First of all, in the original paper, the authors propose adding the loss of the fully supervised dataset $\loss_{source}$, the loss of the target dataset $\loss_{tar}$ and the loss of their model's domain-agnostic penalty $\loss_{CAN}$ for each mini-batch as $\loss = \loss_{source} + \loss_{tar} + \loss_{CAN}$. 
+		
+	The modified procedure can be found in Algorithm \ref{al::modified-ican}, where $D_{source}$ is the source dataset containing the training instances, $D_{target}$ is the equivalent target dataset and $\%$ is the modulo operator.
+	
+	\begin{algorithm}
+		\caption{Modified general incremental learning algorithm} 
+		\label{al::modified-ican}
+		\begin{algorithmic}[1]	
+			\State Train model on dataset $D_{source}$
+			
+			\State $D_{pseudo}$ = \{\}
+			
+			\For{epoch}
+				\If {$epoch \% N_{period} = 0$}
+					\State Calculate $accuracy$ on the validation source dataset
+					\State $\threshold = adaptive\_threshold(accuracy)$
+					\State Select all samples $d \in D_{target}$ where $model(d) > \threshold$
+					\State Add all selected samples to $D_{pseudo}$
+					\State Remove all selected samples from $D_{target}$
+				\EndIf
+				
+				\State Select random samples from $D_{source}$ and add to $D_{rand\_source}$ such as $\lvert D_{rand\_source} \rvert = \lvert D_{pseudo} \rvert$
+				\State Train epoch on $D_{rand\_source}$
+				\State Train epoch on $D_{pseudo}$
+			\EndFor
+			
+		\end{algorithmic} 
+	\end{algorithm}
+
+	\bibliography{refs.bib}
+\end{document}
