@@ -17,18 +17,19 @@ class EpochResults:
 
 
 def train_model(
-        model: nn.Module,
-        criterion,
-        optimizer,
-        scheduler,
-        device: str,
-        train_dataloader: torch.utils.data.DataLoader,
-        val_dataloader: torch.utils.data.DataLoader,
-        output_dir: str,
-        num_epochs: int = 25,
-        patience: int = 1,
-        warmup_period: int = 10,
-        previous_history: dict[str, list[float]] = None,
+    model: nn.Module,
+    criterion,
+    optimizer,
+    scheduler,
+    device: str,
+    train_dataloader: torch.utils.data.DataLoader,
+    val_dataloader: torch.utils.data.DataLoader,
+    output_dir: str,
+    num_epochs: int = 25,
+    patience: int = 1,
+    warmup_period: int = 10,
+    previous_history: dict[str, list[float]] = None,
+    train_stats_period: int = -1,
 ) -> tuple[nn.Module, dict[str, np.ndarray]]:
     dataloaders = {"train": train_dataloader, "val": val_dataloader}
 
@@ -60,6 +61,7 @@ def train_model(
             scheduler,
             dataloaders,
             device,
+            train_stats_period,
         )
         print(
             f"Train Loss: {res.train_loss:.4f} Train Acc: {res.train_acc:.4f}\n"
@@ -91,7 +93,7 @@ def train_model(
 
 
 def update_save_history(
-        history: dict, res: EpochResults, hist_output_path: str
+    history: dict, res: EpochResults, hist_output_path: str
 ) -> dict:
     history["train_loss"].append(res.train_acc)
     history["train_acc"].append(res.train_acc)
@@ -108,12 +110,13 @@ def update_save_history(
 
 
 def run_epoch(
-        model: nn.Module,
-        optimizer,
-        criterion,
-        scheduler,
-        dataloaders,
-        device: str,
+    model: nn.Module,
+    optimizer,
+    criterion,
+    scheduler,
+    dataloaders,
+    device: str,
+    train_stats_period: int = -1,
 ) -> EpochResults:
     train_loss, train_acc = train_epoch(
         model,
@@ -122,10 +125,9 @@ def run_epoch(
         scheduler,
         dataloaders["train"],
         device,
+        train_stats_period,
     )
-    val_loss, val_acc = val_epoch(
-        model, criterion, dataloaders["val"], device
-    )
+    val_loss, val_acc = val_epoch(model, criterion, dataloaders["val"], device)
     return EpochResults(
         train_loss=train_loss,
         train_acc=train_acc,
@@ -135,12 +137,13 @@ def run_epoch(
 
 
 def train_epoch(
-        model: nn.Module,
-        optimizer,
-        criterion,
-        scheduler,
-        dataloader,
-        device: str,
+    model: nn.Module,
+    optimizer,
+    criterion,
+    scheduler,
+    dataloader,
+    device: str,
+    train_stats_period: int = -1,
 ) -> tuple[float, float]:
     # Each epoch has a training and validation phase
 
@@ -149,10 +152,13 @@ def train_epoch(
     running_loss = 0.0
     running_corrects = 0
 
+    iteration = 0
     samples = 0
     # Iterate over data.
     for inputs, labels in tqdm(dataloader):
         samples += len(labels)
+        iteration += 1
+
         inputs = inputs.to(device)
         labels = labels.to(device)
 
@@ -175,7 +181,10 @@ def train_epoch(
         running_loss += loss.item() * inputs.size(0)
         running_corrects += torch.sum(preds == labels.data)
 
-        #print(running_loss / samples)
+        if train_stats_period > 0 and iteration % train_stats_period == 0:
+            print(
+                f"Loss: {running_loss / samples:.5f} Accuracy: {running_corrects.double().cpu() / samples :.3f}"
+            )
 
     epoch_loss = running_loss / samples
     epoch_acc = running_corrects.double().cpu() / samples
@@ -187,7 +196,7 @@ def train_epoch(
 
 
 def val_epoch(
-        model: nn.Module, criterion, dataloader, device: str
+    model: nn.Module, criterion, dataloader, device: str
 ) -> tuple[float, float]:
     model.eval()  # Set model to evaluate mode
 
