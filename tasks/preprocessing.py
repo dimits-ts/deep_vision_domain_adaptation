@@ -10,8 +10,10 @@ def create_padded_dataloader(
     dataset: lib.data.ImageDataset,
     shuffle: bool = True,
     sampler = None,
-    batch_size=1
+    batch_size=1,
+    num_workers=3
 ):
+    pin_memory = batch_size == 1
     # sampler and shuffle are mutually exclusive
     if sampler is None:
         return torch.utils.data.DataLoader(
@@ -19,6 +21,8 @@ def create_padded_dataloader(
             batch_size=batch_size,
             shuffle=shuffle,
             collate_fn=lib.data.collate_pad,
+            num_workers=num_workers,
+            pin_memory=pin_memory
         )
     else:
         return torch.utils.data.DataLoader(
@@ -26,6 +30,8 @@ def create_padded_dataloader(
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=lib.data.collate_pad,
+            num_workers=num_workers,
+            pin_memory=pin_memory
         )
 
 

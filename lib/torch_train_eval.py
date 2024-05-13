@@ -183,7 +183,7 @@ def train_epoch(
 
         if train_stats_period > 0 and iteration % train_stats_period == 0:
             print(
-                f"Loss: {running_loss / samples:.5f} Accuracy: {running_corrects.double().cpu() / samples :.3f}"
+                f"Loss: {running_loss / samples:.6f} Accuracy: {running_corrects.double().cpu() / samples :.5f}"
             )
 
     epoch_loss = running_loss / samples
