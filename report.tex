@@ -106,5 +106,22 @@
 	Overall, the adaptive threshold function provides us with an easy-to-understand mechanism which both adapts to the current state of the model, and which can be tuned with a single hyperparameter. This hyperparameter however remains of crucial importance, and should be tuned either by the number of accepted samples, or if available, a target validation dataset which tracks the pseudo-labeling misclassifications.
 	
 	
+	\subsection{Semi-supervised learning for learning domain-invariant features}
+	
+	One of the greatest challenges in the unsupervised pseudo-labeling approach is the distance between the source and target distributions, which may inhibit training. By using Algorithm \ref{al::modified-ican} during experimentation we noticed three dominant patterns in the evolution of the model:
+	
+	\begin{itemize}
+		\item The model selects samples liberally from $D_{target}$. As established in Section \ref{ssec:threshold}, this usually leads to a complete de-volution in training as the model makes increasingly more incorrect decisions, as it mislabels its own input.
+		
+		\item The model selects samples conservatively from a few classes. In this case, the model correctly attributes samples from a few easily distinguishable classes in $D_{target}$ ("calculator" and "keyboard" in our experiments). It then assumes that all samples bearing features from $D_{target}$ belong in these classes and begins mislabeling all other classes.
+		
+		\item The model selects samples much more conservatively but using most classes. This usually leads to a hyper-conservative model which selects samples only close to the original source distribution, and ends up disregarding a large portion of $D_{target}$.
+	\end{itemize}
+
+	In all three cases the underlying problem is that we can not, by design, expect a generic model to learn domain-invariant features. 
+	
+	A very simple way to partially overcome this problem is to label a small portion of $D_{target}$ and include it during the initial pretraining phase. In other words, we pretrain the model on $\tilde{D}_{source} = D_{source} \cup D_{labeled\_target}$, instead of $D_{source}$, where $D_{labeled\_target}$ is a stratified, labeled sample of $D_{target}$. This allows the model to bypass the conditions for the class imbalance problem described above, and may provide the opportunity for our model to more pick many additional samples during the first few rounds of pseudo-labeling bypassing the hyper-conservative model issue.
+
+	
 	\printbibliography
 \end{document}
