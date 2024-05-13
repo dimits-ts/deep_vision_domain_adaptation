@@ -21,7 +21,7 @@
 
 \def\code#1{\texttt{#1}}
 
-\title{\Huge Do It Yourself: Generic Pseudo-labeling for Domain Adaptation in Deep Computer Vision}
+\title{\Huge Do It Yourself: Generic Pseudo-labeling for Domain Adaptation in Deep Image Classification}
 
 \author{\LARGE Tsirmpas Dimitris}
 
@@ -43,6 +43,16 @@
 	
 	\section{Pseudo-labeling for Classification Enhancement}
 	
+	\subsection{Theoretical background}
+	
+	
+	Let $D_{source} = \{x_i^s, y_i^s\}, i=1,2,\cdots, N_{source}$ be the set containing the training samples from the source dataset, and $D_{target} = \{x_i^t\}, i=1,2,\cdots, N_{target}$ the equivalent from the target dataset. In domain adaptation tasks we assume that the distributions of $D_{source}$ and $D_{target}$ differ significantly, thus we can not simply train a classifier on $D_{source}$ and expect satisfactory results on $D_{target}$.
+	
+	Pseudo-labeling uses the probability estimates of a model to create labels $y_i^t$ for the target samples $\{x_i^t\} \in D_{target}$. Given the estimate $p(C | x_i^t; \Theta)$, where $\Theta$ the model parameters and $C$ the class label, we assume that $y_i^t = argmax_c{p(c | x_i^t; \Theta)}$. These samples are then added to the training dataset alongside $D_{source}$ samples. The value $max_c{p(c | x_i^t; \Theta)}$ is often called the \texttt{classification confidence score} of the sample. 
+	
+	This strategy appears easy and intuitive but holds major caveats. If we applied the following algorithm on the entire $D_{target}$ dataset, it is certain that the training would fail because of mislabeled samples, since, had the model's pseudo-predictions been mostly correct, there would be no incentive for the domain adaptation task in the first place. Thus, most such strategies employ an iterative approach, where only samples with a high certainty of correct classification are selected for training. This certainty is usually defined either as a high enough classification score using the same model, or via majority voting by a selection of similar models.
+	
+	
 	\subsection{Model-agnostic Pseudo-labeling algorithm}
 	
 	We use a modified version of the iCAN algorithm \cite{ican}. The original iCAN algorithm was designed around a model created with the explicit purpose of learning domain-invariant features between the source and target datasets (CAN model). When the unmodified algorithm uses a generic deep model however a number of issues arise. Our approach seeks to remedy the most major of those issues.
@@ -53,7 +63,7 @@
 	
 	Thirdly, we do not use the "domain bias reweighing function" used by the original authors when calculating $\loss_{tar}$. Aside from necessitating a second "domain" classifier, the sampling strategy we employ is inverse to the one proposed by the authors. iCAN attempts to select samples that do not fit the source distribution, in order to prevent its model from selecting target samples that are very similar to the source dataset (since they would score higher confidence scores). Our model-agnostic algorithm attempts to select samples that are closer to the source distribution and, as the model becomes more accustomed to the target distribution, slowly include samples closer to the latter. This is also the motivation behind not re-labeling pseudo-labeled samples.
 		
-	The modified procedure can be found in Algorithm \ref{al::modified-ican}, where $D_{source}$ is the source dataset containing the training instances, $D_{target}$ is the equivalent target dataset and $\%$ is the modulo operator.
+	The modified procedure can be found in Algorithm \ref{al::modified-ican}, where $\%$ is the modulo operator. The \texttt{adaptive\_threshold} function is defined in Section \ref{ssec:threshold}.
 	
 	\begin{algorithm}
 		\caption{Modified general incremental learning algorithm} 
@@ -86,6 +96,7 @@
 
 
 	\subsection{Adaptive threshold}
+	\label{ssec:threshold}
 	
 	We use the same \texttt{adaptive threshold} function used in the original paper, which adjusts the confidence threshold used to decide whether to pseudo-label a sample. The function is defined as $adaptive\_threshold(acc, \rho) = \frac{1}{1+e^{-\rho*acc}}$, where $acc$ is the accuracy of the classifier, and $\rho$ a tunable hyperparameter, with $\rho=3$ in the original paper. We evaluate the classifier accuracy on the validation set of the source dataset.
 	
