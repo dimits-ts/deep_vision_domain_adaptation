@@ -63,6 +63,7 @@ def train_adaptive_model(
         target_val_dataset: lib.data.ImageDataset,
         output_dir: str,
         num_epochs: int = 25,
+        gradient_accumulation: int = 1,
         pseudo_sample_period: int = 1,
         rho=3,
         previous_source_history: dict[str, list[float]] = None,
@@ -146,6 +147,7 @@ def train_adaptive_model(
                 scheduler,
                 source_dataloaders,
                 device,
+                gradient_accumulation=gradient_accumulation
             )
             source_history = lib.torch_train_eval.update_save_history(
                 source_history, source_res, output_history_path_source

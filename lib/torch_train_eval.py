@@ -29,6 +29,7 @@ def train_model(
     patience: int = 1,
     warmup_period: int = 10,
     previous_history: dict[str, list[float]] = None,
+    gradient_accumulation: int = 1,
     train_stats_period: int = -1,
 ) -> tuple[nn.Module, dict[str, np.ndarray]]:
     dataloaders = {"train": train_dataloader, "val": val_dataloader}
@@ -61,6 +62,7 @@ def train_model(
             scheduler,
             dataloaders,
             device,
+            gradient_accumulation,
             train_stats_period,
         )
         print(
@@ -116,6 +118,7 @@ def run_epoch(
     scheduler,
     dataloaders,
     device: str,
+    gradient_accumulation: int = 1,
     train_stats_period: int = -1,
 ) -> EpochResults:
     train_loss, train_acc = train_epoch(
@@ -125,6 +128,7 @@ def run_epoch(
         scheduler,
         dataloaders["train"],
         device,
+        gradient_accumulation,
         train_stats_period,
     )
     val_loss, val_acc = val_epoch(model, criterion, dataloaders["val"], device)
@@ -143,6 +147,7 @@ def train_epoch(
     scheduler,
     dataloader,
     device: str,
+    gradient_accumulation: int = 1,
     train_stats_period: int = -1,
 ) -> tuple[float, float]:
     # Each epoch has a training and validation phase
@@ -162,24 +167,23 @@ def train_epoch(
         inputs = inputs.to(device)
         labels = labels.to(device)
 
-        # zero the parameter gradients
-        optimizer.zero_grad()
+     
+        # forward pass with gradient accumulation
+        if iteration % gradient_accumulation == 0:
+            with torch.set_grad_enabled(True):
+                outputs = model(inputs)
+                _, preds = torch.max(outputs, 1)
+                loss = criterion(outputs, labels)
 
-        # forward
-        # track history if only in train
-        with torch.set_grad_enabled(True):
-            outputs = model(inputs)
-            _, preds = torch.max(outputs, 1)
-            loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
 
-            loss.backward()
-            optimizer.step()
+            scheduler.step()
 
-        scheduler.step()
-
-        # statistics
-        running_loss += loss.item() * inputs.size(0)
-        running_corrects += torch.sum(preds == labels.data)
+            # statistics
+            running_loss += loss.item() * inputs.size(0)
+            running_corrects += torch.sum(preds == labels.data)
 
         if train_stats_period > 0 and iteration % train_stats_period == 0:
             print(
