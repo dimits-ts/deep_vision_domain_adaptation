@@ -159,6 +159,8 @@ def train_epoch(
 
     iteration = 0
     samples = 0
+    loss = 0
+
     # Iterate over data.
     for inputs, labels in tqdm(dataloader):
         samples += len(labels)
@@ -166,14 +168,14 @@ def train_epoch(
 
         inputs = inputs.to(device)
         labels = labels.to(device)
+
+        outputs = model(inputs)
+        _, preds = torch.max(outputs, 1)
+        loss += criterion(outputs, labels)
      
         # forward pass with gradient accumulation
         if iteration % gradient_accumulation == 0:
             with torch.set_grad_enabled(True):
-                outputs = model(inputs)
-                _, preds = torch.max(outputs, 1)
-                loss = criterion(outputs, labels)
-
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -186,6 +188,7 @@ def train_epoch(
 
             # release GPU VRAM https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770/4
             del loss, outputs, preds
+            loss = 0
 
         if train_stats_period > 0 and iteration % train_stats_period == 0:
             print(
