@@ -166,7 +166,6 @@ def train_epoch(
 
         inputs = inputs.to(device)
         labels = labels.to(device)
-
      
         # forward pass with gradient accumulation
         if iteration % gradient_accumulation == 0:
@@ -182,16 +181,19 @@ def train_epoch(
             scheduler.step()
 
             # statistics
-            running_loss += loss.item() * inputs.size(0)
-            running_corrects += torch.sum(preds == labels.data)
+            running_loss += loss.detach().item() * inputs.size(0)
+            running_corrects += torch.sum(preds == labels.data).double().cpu()
+
+            # release GPU VRAM https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770/4
+            del loss, outputs, preds
 
         if train_stats_period > 0 and iteration % train_stats_period == 0:
             print(
-                f"Loss: {running_loss / samples:.6f} Accuracy: {running_corrects.double().cpu() / samples :.5f}"
+                f"Loss: {running_loss / samples:.6f} Accuracy: {running_corrects / samples :.5f}"
             )
 
     epoch_loss = running_loss / samples
-    epoch_acc = running_corrects.double().cpu() / samples
+    epoch_acc = running_corrects / samples
 
     train_loss = epoch_loss
     train_acc = epoch_acc
@@ -221,10 +223,13 @@ def val_epoch(
 
         # statistics
         running_loss += loss.item() * inputs.size(0)
-        running_corrects += torch.sum(preds == labels.data)
+        running_corrects += torch.sum(preds == labels.data).double().cpu()
+
+        # release GPU VRAM https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770/4
+        del loss, outputs, preds
 
     epoch_loss = running_loss / samples
-    epoch_acc = running_corrects.double().cpu() / samples
+    epoch_acc = running_corrects / samples
 
     return epoch_loss, epoch_acc
 

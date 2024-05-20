@@ -8,8 +8,8 @@ from typing import Any
 def try_load_weights(model, weights_path: str):
     try:
         model.load_state_dict(torch.load(weights_path))
-    except:
-        print("No weights found in path ", weights_path)
+    except Exception as e:
+        print("No weights found in path ", weights_path, "\n", e)
     return model
 
 
