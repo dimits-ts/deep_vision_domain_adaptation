@@ -172,6 +172,9 @@ def train_epoch(
         outputs = model(inputs)
         _, preds = torch.max(outputs, 1)
         loss += criterion(outputs, labels)
+
+        # release GPU VRAM before next invocation
+        del  outputs
      
         # forward pass with gradient accumulation
         if iteration % gradient_accumulation == 0:
@@ -187,7 +190,7 @@ def train_epoch(
             running_corrects += torch.sum(preds == labels.data).double().cpu()
 
             # release GPU VRAM https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770/4
-            del loss, outputs, preds
+            del loss
             loss = 0
 
         if train_stats_period > 0 and iteration % train_stats_period == 0:
