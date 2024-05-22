@@ -159,7 +159,6 @@ def train_epoch(
 
     iteration = 0
     samples = 0
-    loss = 0
 
     # Iterate over data.
     for inputs, labels in tqdm(dataloader):
@@ -169,29 +168,33 @@ def train_epoch(
         inputs = inputs.to(device)
         labels = labels.to(device)
 
+        input_size = inputs.size(0)
+
         outputs = model(inputs)
         _, preds = torch.max(outputs, 1)
-        loss += criterion(outputs, labels)
 
-        # release GPU VRAM before next invocation
-        del  outputs
+        loss = criterion(outputs, labels) / gradient_accumulation
+
+        with torch.set_grad_enabled(True):
+            loss.backward() 
+        
+        loss_float = loss.detach().item()
+        
+        # release GPU VRAM before next invocation 
+        # https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770/4
+        del inputs, outputs, loss
      
         # forward pass with gradient accumulation
         if iteration % gradient_accumulation == 0:
             with torch.set_grad_enabled(True):
-                loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
 
             scheduler.step()
 
             # statistics
-            running_loss += loss.detach().item() * inputs.size(0)
+            running_loss +=  loss_float * input_size
             running_corrects += torch.sum(preds == labels.data).double().cpu()
-
-            # release GPU VRAM https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770/4
-            del loss
-            loss = 0
 
         if train_stats_period > 0 and iteration % train_stats_period == 0:
             print(

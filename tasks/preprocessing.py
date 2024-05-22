@@ -2,6 +2,7 @@ import torch
 import imageio.v2 as imageio
 from torchvision.transforms import v2
 import numpy as np
+import PIL
 
 import lib.data
 
@@ -48,7 +49,6 @@ def resnet_preprocessor(image: np.ndarray) -> torch.Tensor:
         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
 
-    # Apply preprocessing transformations
     processed_image = preprocess(image)
 
     return processed_image
