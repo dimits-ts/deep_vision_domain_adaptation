@@ -15,7 +15,6 @@ class EpochResults:
         self.val_loss = val_loss
         self.val_acc = val_acc
 
-
 def train_model(
     model: nn.Module,
     criterion,
@@ -52,7 +51,7 @@ def train_model(
     # early stopping counter
     epochs_no_progress = 0
 
-    for epoch in range(num_epochs):
+    for epoch in range(len(history["train_loss"]), num_epochs):
         print(f"Epoch {epoch}/{num_epochs - 1}")
         print("-" * 10)
         res = run_epoch(
@@ -168,8 +167,6 @@ def train_epoch(
         inputs = inputs.to(device)
         labels = labels.to(device)
 
-        input_size = inputs.size(0)
-
         outputs = model(inputs)
         _, preds = torch.max(outputs, 1)
 
@@ -190,13 +187,13 @@ def train_epoch(
                 optimizer.step()
                 optimizer.zero_grad()
 
-            scheduler.step()
-
-            # statistics
-            running_loss +=  loss_float * input_size
-            running_corrects += torch.sum(preds == labels.data).double().cpu()
+            if scheduler is not None:
+                scheduler.step()
 
         if train_stats_period > 0 and iteration % train_stats_period == 0:
+            # statistics
+            running_loss += loss_float
+            running_corrects += torch.sum(preds == labels.data).double().cpu()
             print(
                 f"Loss: {running_loss / samples:.6f} Accuracy: {running_corrects / samples :.5f}"
             )
