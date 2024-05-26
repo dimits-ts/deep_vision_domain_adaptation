@@ -152,7 +152,7 @@ def train_epoch(
     dataloader,
     device: str,
     gradient_accumulation: int = 1,
-    train_stats_period: int = -1,
+    train_stats_period: int = 10e8, 
     verbose: bool = True
 ) -> tuple[float, float]:
     # Each epoch has a training and validation phase
@@ -180,9 +180,12 @@ def train_epoch(
         loss = criterion(outputs, labels) / gradient_accumulation
 
         with torch.set_grad_enabled(True):
-            loss.backward() 
-        
+            loss.backward()
+
         loss_float = loss.detach().item()
+        # statistics
+        running_loss += loss_float * inputs.size(0)
+        running_corrects += torch.sum(preds == labels.data).double().cpu()
         
         # release GPU VRAM before next invocation 
         # https://discuss.pytorch.org/t/gpu-memory-consumption-increases-while-training/2770/4
@@ -197,10 +200,7 @@ def train_epoch(
             if scheduler is not None:
                 scheduler.step()
 
-        if train_stats_period > 0 and iteration % train_stats_period == 0:
-            # statistics
-            running_loss += loss_float
-            running_corrects += torch.sum(preds == labels.data).double().cpu()
+        if iteration % train_stats_period == 0:
             print(
                 f"Loss: {running_loss / samples:.6f} Accuracy: {running_corrects / samples :.5f}"
             )
