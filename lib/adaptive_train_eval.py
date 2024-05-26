@@ -20,13 +20,13 @@ def adaptive_threshold(classification_accuracy: float, rho: float = 3) -> float:
 
 
 def select_samples(
-        model: nn.Module, dataset, threshold: float, device: str
+        model: nn.Module, dataset, threshold: float, device: str, verbose: bool=True
 ) -> tuple[list[str], list[int]]:
     selected_samples_ls = []
     predicted_labels_ls = []
+    iterable = tqdm(dataset) if verbose else dataset
 
-    # Iterate over batches
-    for inputs, file_path in tqdm(dataset):
+    for inputs, file_path in iterable:
         inputs = inputs.to(device)
 
         # Forward pass
@@ -67,7 +67,8 @@ def train_adaptive_model(
         pseudo_sample_period: int = 1,
         rho=3,
         previous_source_history: dict[str, list[float]] = None,
-        previous_target_history: dict[str, list[float]] = None
+        previous_target_history: dict[str, list[float]] = None,
+        verbose: bool=True
 ) -> tuple[
     nn.Module,
     dict[str, np.ndarray],
@@ -147,7 +148,8 @@ def train_adaptive_model(
                 scheduler,
                 source_dataloaders,
                 device,
-                gradient_accumulation=gradient_accumulation
+                gradient_accumulation=gradient_accumulation,
+                verbose=verbose
             )
             source_history = lib.torch_train_eval.update_save_history(
                 source_history, source_res, output_history_path_source
@@ -163,6 +165,7 @@ def train_adaptive_model(
                 criterion=criterion,
                 dataloader=source_dataloaders["val"],
                 device=device,
+                verbose=verbose
             )
 
         if epoch % pseudo_sample_period == 0:
@@ -173,6 +176,7 @@ def train_adaptive_model(
                 unlabeled_dataloader_initializer(unlabeled_target_train_dataset),
                 threshold,
                 device,
+                verbose=verbose
             )
 
             print(
@@ -210,6 +214,7 @@ def train_adaptive_model(
             scheduler,
             target_dataloaders,
             device,
+            verbose=verbose
         )
         target_history = lib.torch_train_eval.update_save_history(
             target_history, target_res, output_history_path_target

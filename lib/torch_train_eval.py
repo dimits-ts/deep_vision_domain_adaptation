@@ -15,6 +15,7 @@ class EpochResults:
         self.val_loss = val_loss
         self.val_acc = val_acc
 
+
 def train_model(
     model: nn.Module,
     criterion,
@@ -30,6 +31,7 @@ def train_model(
     previous_history: dict[str, list[float]] = None,
     gradient_accumulation: int = 1,
     train_stats_period: int = -1,
+    verbose: bool=True
 ) -> tuple[nn.Module, dict[str, np.ndarray]]:
     dataloaders = {"train": train_dataloader, "val": val_dataloader}
 
@@ -63,6 +65,7 @@ def train_model(
             device,
             gradient_accumulation,
             train_stats_period,
+            verbose=verbose
         )
         print(
             f"Train Loss: {res.train_loss:.4f} Train Acc: {res.train_acc:.4f}\n"
@@ -119,6 +122,7 @@ def run_epoch(
     device: str,
     gradient_accumulation: int = 1,
     train_stats_period: int = -1,
+    verbose: bool = True
 ) -> EpochResults:
     train_loss, train_acc = train_epoch(
         model,
@@ -129,8 +133,9 @@ def run_epoch(
         device,
         gradient_accumulation,
         train_stats_period,
+        verbose=verbose
     )
-    val_loss, val_acc = val_epoch(model, criterion, dataloaders["val"], device)
+    val_loss, val_acc = val_epoch(model, criterion, dataloaders["val"], device, verbose=verbose)
     return EpochResults(
         train_loss=train_loss,
         train_acc=train_acc,
@@ -148,6 +153,7 @@ def train_epoch(
     device: str,
     gradient_accumulation: int = 1,
     train_stats_period: int = -1,
+    verbose: bool = True
 ) -> tuple[float, float]:
     # Each epoch has a training and validation phase
 
@@ -159,8 +165,9 @@ def train_epoch(
     iteration = 0
     samples = 0
 
+    iterable = tqdm(dataloader) if verbose else dataloader
     # Iterate over data.
-    for inputs, labels in tqdm(dataloader):
+    for inputs, labels in iterable:
         samples += len(labels)
         iteration += 1
 
@@ -208,7 +215,7 @@ def train_epoch(
 
 
 def val_epoch(
-    model: nn.Module, criterion, dataloader, device: str
+    model: nn.Module, criterion, dataloader, device: str, verbose: bool = True
 ) -> tuple[float, float]:
     model.eval()  # Set model to evaluate mode
 
@@ -216,8 +223,9 @@ def val_epoch(
     running_corrects = 0
 
     samples = 0
+    iterable = tqdm(dataloader) if verbose else dataloader
     # Iterate over data.
-    for inputs, labels in tqdm(dataloader):
+    for inputs, labels in iterable:
         samples += len(labels)
         inputs = inputs.to(device)
         labels = labels.to(device)
