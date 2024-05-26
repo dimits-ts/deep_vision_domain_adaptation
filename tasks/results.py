@@ -35,6 +35,26 @@ def plot_label_history(label_history, encodings):
     plt.show()
 
 
+def learning_curves_loss(history) -> None:
+    plt.plot(np.array(range(len(history["train_loss"]))), history["train_loss"], label="Training")
+    plt.plot(np.array(range(len(history["val_loss"]))), history["val_loss"], label="Validation")
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Cross Entropy Loss")
+    plt.legend()
+    plt.show()
+
+
+def learning_curves_accuracy(history) -> None:
+    plt.plot(np.array(range(len(history["train_acc"]))), history["train_acc"], label="Training")
+    plt.plot(np.array(range(len(history["val_acc"]))), history["val_acc"], label="Validation")
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.legend()
+    plt.show()
+
+
 def classification_results(model, dataloader, class_names: list[str], device: str):
     actual, predicted = lib.torch_train_eval.test(model, dataloader, device)
 
