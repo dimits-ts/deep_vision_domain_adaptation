@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import sklearn.metrics
 import numpy as np
+import seaborn as sns
 
 import lib.torch_train_eval
 
@@ -30,28 +31,68 @@ def count_misclassifications(label_history, encodings):
 def plot_label_history(label_history, encodings):
     misclassifications = count_misclassifications(label_history, encodings)
     label_counts = [len(x) for x in label_history]
-    plt.plot(label_counts)
-    plt.plot(misclassifications)
+
+    data_label = {
+        'Sampling period': list(range(len(label_counts))) * 2,
+        'Count': label_counts + misclassifications,
+        'Type': ['Total samples'] * len(label_counts) + ['Misclassified samples'] * len(misclassifications)
+    }
+
+    sns.lineplot(x='Sampling period', y='Count', hue='Type', data=data_label, marker='o')
+
+    # y-ticks integers only
+    plt.gca().yaxis.get_major_locator().set_params(integer=True)
+
+    plt.xlabel("Sampling period")
+    plt.ylabel("Pseudolabeled samples selected")
+    plt.title("Label History")
+    plt.legend(title='Type')
+
+    plt.grid(True)
     plt.show()
 
 
 def learning_curves_loss(history) -> None:
-    plt.plot(np.array(range(len(history["train_loss"]))), history["train_loss"], label="Training")
-    plt.plot(np.array(range(len(history["val_loss"]))), history["val_loss"], label="Validation")
+    epochs = np.array(range(len(history["train_loss"])))
+
+    data_loss = {
+        'Epoch': np.concatenate([epochs, epochs]),
+        'Loss': np.concatenate([history["train_loss"], history["val_loss"]]),
+        'Type': ['Training'] * len(history["train_loss"]) + ['Validation'] * len(history["val_loss"])
+    }
+
+    sns.lineplot(x='Epoch', y='Loss', hue='Type', data=data_loss, marker='o')
 
     plt.xlabel("Epoch")
     plt.ylabel("Cross Entropy Loss")
-    plt.legend()
+    plt.title("Learning Curves - Loss")
+    plt.legend(title='Type')
+
+    # Adding gridlines
+    plt.grid(True)
+
     plt.show()
 
 
 def learning_curves_accuracy(history) -> None:
-    plt.plot(np.array(range(len(history["train_acc"]))), history["train_acc"], label="Training")
-    plt.plot(np.array(range(len(history["val_acc"]))), history["val_acc"], label="Validation")
+    epochs = np.array(range(len(history["train_acc"])))
+
+    data_acc = {
+        'Epoch': np.concatenate([epochs, epochs]),
+        'Accuracy': np.concatenate([history["train_acc"], history["val_acc"]]),
+        'Type': ['Training'] * len(history["train_acc"]) + ['Validation'] * len(history["val_acc"])
+    }
+
+    sns.lineplot(x='Epoch', y='Accuracy', hue='Type', data=data_acc, marker='o')
 
     plt.xlabel("Epoch")
     plt.ylabel("Accuracy")
-    plt.legend()
+    plt.title("Learning Curves - Accuracy")
+    plt.legend(title='Type')
+
+    # Adding gridlines
+    plt.grid(True)
+
     plt.show()
 
 
