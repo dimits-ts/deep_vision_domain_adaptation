@@ -149,7 +149,8 @@ def train_adaptive_model(
                 source_dataloaders,
                 device,
                 gradient_accumulation=gradient_accumulation,
-                verbose=verbose
+                verbose=verbose,
+                train_stats_period=int(10e6)
             )
             source_history = lib.torch_train_eval.update_save_history(
                 source_history, source_res, output_history_path_source

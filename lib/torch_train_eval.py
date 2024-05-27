@@ -30,8 +30,8 @@ def train_model(
     warmup_period: int = 10,
     previous_history: dict[str, list[float]] = None,
     gradient_accumulation: int = 1,
-    train_stats_period: int = -1,
-    verbose: bool=True
+    train_stats_period: int = 100000,
+    verbose: bool = True
 ) -> tuple[nn.Module, dict[str, np.ndarray]]:
     dataloaders = {"train": train_dataloader, "val": val_dataloader}
 
@@ -121,7 +121,7 @@ def run_epoch(
     dataloaders,
     device: str,
     gradient_accumulation: int = 1,
-    train_stats_period: int = -1,
+    train_stats_period: int = 100000,
     verbose: bool = True
 ) -> EpochResults:
     train_loss, train_acc = train_epoch(
@@ -152,7 +152,7 @@ def train_epoch(
     dataloader,
     device: str,
     gradient_accumulation: int = 1,
-    train_stats_period: int = 10e8, 
+    train_stats_period: int = 100000,
     verbose: bool = True
 ) -> tuple[float, float]:
     # Each epoch has a training and validation phase
