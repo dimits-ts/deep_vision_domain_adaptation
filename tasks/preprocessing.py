@@ -2,7 +2,6 @@ import torch
 import imageio.v2 as imageio
 from torchvision.transforms import v2
 import numpy as np
-import PIL
 
 import lib.data
 
@@ -33,6 +32,17 @@ def create_padded_dataloader(
             collate_fn=lib.data.collate_pad,
             num_workers=num_workers,
             pin_memory=pin_memory
+        )
+
+
+def single_batch_loader(dataset, shuffle=True, sampler=None):
+    return torch.utils.data.DataLoader(
+            dataset,
+            sampler=sampler,
+            batch_size=1,
+            shuffle=shuffle,
+            num_workers=5,
+            pin_memory=True
         )
 
 
