@@ -5,6 +5,20 @@ import os
 from typing import Any
 
 
+def get_model(device: str, 
+              replace_fc_layer: bool=False, 
+              num_classes: int=0, 
+              use_default_weights: bool=True) -> torch.nn.Module:
+    weights = "DEFAULT" if use_default_weights else None
+    model = torch.hub.load("pytorch/vision:v0.10.0", "resnet18", weights=weights).to(
+        device
+    )
+    if replace_fc_layer:
+        model.fc = torch.nn.Linear(model.fc.in_features, num_classes).to(device)
+    return model
+
+
+
 def try_load_weights(model, weights_path: str):
     try:
         model.load_state_dict(torch.load(weights_path))
