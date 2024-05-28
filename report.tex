@@ -42,13 +42,27 @@
 	
 	The core of pseudo-labeling lies in the principle of iterative refinement of model predictions over unlabeled data. Given a model trained on a small labeled dataset, predictions are made on the unlabeled data. Those predictions are used to assign pseudo-labels to the unlabeled instances, effectively enlarging the labeled dataset. Further, the model is trained again on the augmented dataset in an iterative fashion, refining its performance and pseudo-labeling accuracy. It thus aims to gradually align the feature distributions of the source and target domains.
 	
-	The efficacy of pseudo-labeling is conditioned on several key factors: the quality of the initially labeled data, the heuristics of pseudo-labeling, and the model architecture. These conditions have led to the inception of several algorithms, tightly coupled with specialized models able to learn domain-invariant features from both datasets. However, the level of complexity and cost to these models can be daunting, with most recent approaches necessitating multiple Deep Neural Network models (DNNs) as well as a suite of additional algorithms and training frameworks. 
+	The efficiency of pseudo-labeling is conditioned on several key factors: the quality of the initially labeled data, the heuristics of pseudo-labeling, and the model architecture. These conditions have led to the inception of several algorithms, tightly coupled with specialized models able to learn domain-invariant features from both datasets. However, the level of complexity and cost to these models can be daunting, with most recent approaches necessitating multiple Deep Neural Network models (DNNs) as well as a suite of additional algorithms and training frameworks. 
 	
 	In this paper we propose a simple, alternative approach to training models on both unsupervised and semi-supervised datasets. Our approach seeks to minimize the training cost, only necessitating the presence of the original model, and keeping additional tuning hyper-parameters to a minimum. We evaluate the performance of our algorithm on both a small and large dataset, and extract useful insights on the weaknesses of pseudo-labeled data in the absence of the aforementioned specialized algorithms.
 	
 	
 	\section{Related Works}
 	
+	Pseudo-labeling was first introduced to DNNs by \cite{pseudo-label-original}. The assumption behind the procedure is that data points are clustered according to their class, which the discriminator needs to find the border of. By using pseudo-labeling, the discriminator can refine the border regions of these clusters by gradually including data points further and further from the cluster's center. Thus, pseudo-labeling can be seen as a form of Entropy Regularization \cite{entropy-regularization}.
+	
+	One of the ways where pseudo-labeling fails was explored by \cite{pseudo-label-evaluation}. As demonstrated in the "twins-moons" dataset, should the initial clusters not be evaluated correctly at the beginning of the algorithm, the discriminator could learn an entirely wrong decision boundary. A classic example of this happening would be very few initial samples being used during training. In the context of domain adaptation however, it could also be caused by a sufficiently large gap between the source and target distributions.
+	
+	The latter issue is the primary reason for the current gallery of additional models and algorithms involved in the main training loop of SOTA domain adaptation systems using pseudo-labeling. \cite{good-practices} outline most of the most commonly used algorithms, including model regularization, outlier filtering (using the cluster assumption introduced by \cite{pseudo-label-original}) and domain alignment. \cite{model-survey} showcase modern SOTA models from different domain-adaptation approaches, as well as a review of common datasets.
+	
+	In the original pseudo-labeling paper, \cite{pseudo-label-original} proposed a training loop where both the source and target distributions were considered at different points in time using a weighted sum of losses from both datasets. Specifically, $\loss = \loss_{source} + a(t) * \loss_{target}$, where $\alpha(t) = 
+	\begin{cases} 0 & \text{if } t < T_1 \\
+		\frac{t-T_1}{T_2-T_1}\alpha_f & \text{if } T_1 \leq t \leq T_2 \\
+		\alpha_f & \text{if } T_2 < t
+	\end{cases}$
+	where $T_1, T_2, \alpha_f$ hyperparameters. This approach however requires the definition of multiple hyperparameters, requiring the existence of an extensive target validation set, which is usually hard to construct, given the problem formulation of domain adaptation. \cite{ican} propose a different method of scheduling the source and target dataset losses, which we elaborate on later in this paper.
+	
+	Finally, \cite{pseudo-label-evaluation} denote a number of important steps towards correctly evaluating pseudo-labeling algorithms. Notably, they stress the importance of not over-tweaking hyperparameters since, as stated above, large validation steps are unrealistic in domain adaptation tasks. They also note that these algorithms need to also be evaluated on dataset with significant distribution shift between the two domains, since those are the cases where pseudo-labeling techniques are especially vulnerable.
 	
 	
 	\section{Pseudo-labeling for Classification Enhancement}
