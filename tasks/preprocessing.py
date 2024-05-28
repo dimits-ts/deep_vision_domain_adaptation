@@ -35,13 +35,13 @@ def create_padded_dataloader(
         )
 
 
-def single_batch_loader(dataset, shuffle=True, sampler=None):
+def single_batch_loader(dataset, shuffle=True, sampler=None, n_workers: int=5):
     return torch.utils.data.DataLoader(
             dataset,
             sampler=sampler,
             batch_size=1,
             shuffle=shuffle,
-            num_workers=5,
+            num_workers=n_workers,
             pin_memory=True
         )
 

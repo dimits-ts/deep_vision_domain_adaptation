@@ -22,6 +22,8 @@ def adaptive_threshold(classification_accuracy: float, rho: float = 3) -> float:
 def select_samples(
         model: nn.Module, dataset, threshold: float, device: str, verbose: bool=True
 ) -> tuple[list[str], list[int]]:
+    model.eval()
+    
     selected_samples_ls = []
     predicted_labels_ls = []
     iterable = tqdm(dataset) if verbose else dataset
