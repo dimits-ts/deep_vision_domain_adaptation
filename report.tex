@@ -78,6 +78,7 @@
 	
 	
 	\subsection{Model-agnostic Pseudo-labeling algorithm}
+	\label{ssec:our-algorithm}
 	
 	We use a modified version of the iCAN algorithm \cite{ican}. The original iCAN algorithm was designed around a model created with the explicit purpose of learning domain-invariant features between the source and target datasets (CAN model). When the unmodified algorithm uses a generic deep model however a number of issues arise. Our approach seeks to remedy the most major of those issues.
 	
@@ -145,7 +146,31 @@
 	In all three cases the underlying problem is that we can not, by design, expect a generic model to learn domain-invariant features. 
 	
 	A very simple way to partially overcome this problem is to label a small portion of $D_{target}$ and include it during the initial pretraining phase. In other words, we pretrain the model on $\tilde{D}_{source} = D_{source} \cup D_{labeled\_target}$, instead of $D_{source}$, where $D_{labeled\_target}$ is a stratified, labeled sample of $D_{target}$. This allows the model to bypass the conditions for the class imbalance problem described above, and may provide the opportunity for our model to more pick many additional samples during the first few rounds of pseudo-labeling bypassing the hyper-conservative model issue.
-
+	
+	
+	\section{Experiments}
+	
+	\subsection{Datasets}
+	
+	In this paper we examine the effects of "vanilla" pseudo-labeling on two main domain adaptation datasets focused on image classification. 
+	
+	The first domain adaptation task we explore is the "MNIST to MNIST-M" task. The MNIST \cite{mnist} dataset is a widely-used benchmark in machine learning, particularly for handwritten digit recognition. It consists of 70,000 grayscale images of handwritten digits (0-9), split into 60,000 training images and 10,000 test images, each sized 28x28 pixels. MNIST-M \cite{mnist-m} is a variant of the MNIST dataset created to present a more challenging domain adaptation problem. It overlays the original MNIST digits onto random background images extracted from color photos, adding variability and noise to the digit images. MNIST-M retains the same structure and digit classes as MNIST but introduces complex and colorful backgrounds to the 28x28 images.
+	
+	The second dataset is the Modern Office-31 \cite{modern-office} dataset, a newly introduced dataset designed to serve as a drop-in replacement for the well-known Office-31 \cite{office} dataset. It maintains the same 31 classes as Office-31 (computers, keyboards, and office furniture, captured in diverse settings and under different conditions), while also including real-life domain images from the original Office-31 webcam images and a cleaned Amazon domain, creating a comprehensive dataset with 7,210 images across three domains: Amazon, Synthetic, and Webcam. In this study, we use the "Webcam to Real Life" task to evaluate our model.
+	
+	Thus for our experiments, we can compare results with a task where the source and target distributions are fairly close (MNIST to MNIST-M), and one where they are significantly diverse from each other (Modern Office Webcam to Real Life). We hope to address in this way, the common criticism of evaluating domain adaptation tasks on tasks with similar domains, as noted by \cite{pseudo-label-evaluation}.
+	
+	\subsection{Experimental Setup}
+	
+	For each domain adaptation task we produce two models, one trained on the source dataset and one on the target dataset, as baselines. These models serve as the lower and upper bounds of the classifiers' performance respectively.
+	
+	We then finetune three pretrained models on different source datasets; $D_{source}$ (unsupervised), $\tilde{D}_{source_{10}} = D_{source} \cup D_{labeled\_target_{10}}$ and $\tilde{D}_{source_{20}} = D_{source} \cup D_{labeled\_target_{20}}$ (semi-supervised), where $D_{labeled\_target_{\chi}}$ is a random, labeled sample from the target dataset, with $\chi\%$ samples. The finetuned models are then used as input for the incremental learning algorithm outlined in Section \ref{ssec:our-algorithm}.
+	
+	We monitor two metrics for each of these models; the performance on the target test set, and the rate of pseudo-labeling misclassifications. Of course, the latter practically necessitates the a-priori knowledge of the pseudo-labeled samples' labels. We thus use this metric \textbf{only} as a post-analysis metric to demonstrate the efficiency of pseudo-labeling for each model and dataset, and \textbf{not as a validation metric} to tune the model's training. Our experience does suggest however that performing this procedure on a validation set can significantly help in both tuning hyperparameters, and diagnosing issues during training.
+	
+	We use the ResNet-18 \cite{resnet} model for all experiments trained with the Adam optimizer ($lr=0.0005$) and using label smoothing ($\alpha = 0.15$). For the MNIST/MNIST-M dataset in particular, we use the pytorch AdamW implementation with $weight_decay = 10^{-3}$. Each ResNet model is pretrained on the ImageNet \cite{imagenet} dataset, before being finetuned on our respective source datasets. Datasets for both domains are randomly split in a 70\%-15\%-15\% training-validation-test split.
+	
+	\subsection{Results}
 	
 	\printbibliography
 \end{document}
