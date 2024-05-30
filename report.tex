@@ -181,6 +181,7 @@
 		\label{tab:dataset_characteristics}
 	\end{table}
 	
+	
 	\subsection{Experimental Setup}
 	
 	For each domain adaptation task we produce two models, one trained on the source dataset and one on the target dataset, as baselines. These models serve as the lower and upper bounds of the classifiers' performance respectively.
@@ -189,7 +190,7 @@
 	
 	We monitor two metrics for each of these models; the performance on the target test set, and the rate of pseudo-labeling misclassifications. Of course, the latter practically necessitates the a-priori knowledge of the pseudo-labeled samples' labels. We thus use this metric \textbf{only} as a post-analysis metric to demonstrate the efficiency of pseudo-labeling for each model and dataset, and \textbf{not as a validation metric} to tune the model's training. Our experience does suggest however that performing this procedure on a validation set can significantly help in both tuning hyperparameters, and diagnosing issues during training.
 	
-	We use the ResNet-18 \cite{resnet} model for all experiments trained with the Adam optimizer ($lr=0.0005$) and using label smoothing ($\alpha = 0.15$). For the MNIST/MNIST-M dataset in particular, we use the pytorch AdamW implementation with $weight_decay = 10^{-3}$. We set the adaptive threshold rate $\rho = 3$ as in its original paper \cite{ican}. Each ResNet model is pretrained on the ImageNet \cite{imagenet} dataset, before being finetuned on our respective source datasets. Datasets for both domains are randomly split in a 70\%-15\%-15\% training-validation-test split.
+	We use the ResNet-18 \cite{resnet} model for all experiments trained with the Adam optimizer ($lr=0.0005$). For the MNIST/MNIST-M dataset in particular, we use the PyTorch AdamW implementation with $weight\_decay = 10^{-3}$. We use different label smoothing parameters for the finetuning and incremental learning phases. We set $\alpha = 0.05$ for the finetuning task, and $\alpha = 0.15$ for the incremental learning, in order to account for the greater possibility of pseudo-labeled misclassifications. We set the adaptive threshold rate for the MNIST/MNIST-M task $\rho = 3$, as in its original paper \cite{ican}, and $\rho=4$ for the Modern Office-31 task, in order to account for the larger shift in distributions. Each ResNet model is pretrained on the ImageNet \cite{imagenet} dataset, before being finetuned on our respective source datasets. Datasets for both domains are randomly split in a 70\%-15\%-15\% training-validation-test split.
 	
 	
 	\subsection{Results}
