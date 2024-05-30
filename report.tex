@@ -160,9 +160,26 @@
 	
 	The first domain adaptation task we explore is the "MNIST to MNIST-M" task. The MNIST \cite{mnist} dataset is a widely-used benchmark in machine learning, particularly for handwritten digit recognition. It consists of 70,000 grayscale images of handwritten digits (0-9), split into 60,000 training images and 10,000 test images, each sized 28x28 pixels. MNIST-M \cite{mnist-m} is a variant of the MNIST dataset created to present a more challenging domain adaptation problem. It overlays the original MNIST digits onto random background images extracted from color photos, adding variability and noise to the digit images. MNIST-M retains the same structure and digit classes as MNIST but introduces complex and colorful backgrounds to the 28x28 images.
 	
-	The second dataset is the Modern Office-31 \cite{modern-office} dataset, a newly introduced dataset designed to serve as a drop-in replacement for the well-known Office-31 \cite{office} dataset. It maintains the same 31 classes as Office-31 (computers, keyboards, and office furniture, captured in diverse settings and under different conditions), while also including real-life domain images from the original Office-31 webcam images and a cleaned Amazon domain, creating a comprehensive dataset with 7,210 images across three domains: Amazon, Synthetic, and Webcam. In this study, we use the "Webcam to Real Life" task to evaluate our model.
+	The second dataset is the Modern Office-31 \cite{modern-office} dataset, a newly introduced dataset designed to serve as a drop-in replacement for the well-known Office-31 \cite{office} dataset. It maintains the same 31 classes as Office-31 (computers, keyboards, and office furniture, captured in diverse settings and under different conditions), while also including real-life domain images from the original Office-31 webcam images and a cleaned Amazon domain, creating a comprehensive dataset with 7,210 images across three domains: Amazon, Synthetic, and Webcam. In this study, we use the "Amazon to Webcam" task to evaluate our model.
 	
-	Thus for our experiments, we can compare results with a task where the source and target distributions are fairly close (MNIST to MNIST-M), and one where they are significantly diverse from each other (Modern Office Webcam to Real Life). We hope to address in this way, the common criticism of evaluating domain adaptation tasks on tasks with similar domains, as noted by \cite{pseudo-label-evaluation}.
+	Thus for our experiments, we can compare results with a task where the source and target distributions are fairly close (MNIST to MNIST-M), and one where they are significantly diverse from each other (Modern Office Amazon to Webcam). We hope to address in this way, the common criticism of evaluating domain adaptation tasks on tasks with similar domains, as noted by \cite{pseudo-label-evaluation}. A comparison of these datasets can be found in Table \ref{tab:dataset_characteristics}.
+	
+	\begin{table}
+		\centering
+		\renewcommand{\arraystretch}{1.5}
+		\begin{tabular}{>{\raggedright}p{5cm} >{\centering}p{4cm} >{\centering\arraybackslash}p{4cm}}
+			\toprule
+			& \textbf{MNIST/MNIST-M} & \textbf{Modern Office-31} \\
+			\midrule
+			\rowcolor{gray!20} \textbf{\#Samples (source)} & 70,000 & 2,817 \\
+			\textbf{\#Samples (target)} & 149,002 & 795 \\
+			\rowcolor{gray!20} \textbf{\#Classes} & 10 & 31 \\
+			\textbf{Task Difficulty} & Easy/Medium & High \\
+			\bottomrule
+		\end{tabular}
+		\caption{Dataset characteristics for MNIST/MNIST-M and Modern Office-31}
+		\label{tab:dataset_characteristics}
+	\end{table}
 	
 	\subsection{Experimental Setup}
 	
@@ -182,8 +199,8 @@
 	For the Modern Office-31 dataset, the Source-only method achieves a mere 12\% accuracy, again highlighting domain adaptation challenges. The Target-only method is marked as untrainable, due to the very limited number of target samples. Unsupervised adaptation improves accuracy to 25\%, suggesting some domain alignment. Supervised approaches with 10\% labeled target data achieve 23\% accuracy without incremental learning and 16\% with it, suggesting that incremental learning may not always be beneficial. With 20\% labeled target data, the accuracies are 34\% and 33\% for non-incremental and incremental learning, respectively, indicating a notable improvement over unsupervised methods. 
 
 	
-	
-	\begin{table}[h!]
+
+	\begin{table}
 		\centering
 		\renewcommand{\arraystretch}{1.5}
 		\begin{tabular}{>{\raggedright}p{3.5cm} >{\centering}p{5cm} >{\centering\arraybackslash}p{5cm}}
