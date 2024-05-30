@@ -158,8 +158,6 @@ def train_adaptive_model(
                 source_history, source_res, output_history_path_source
             )
 
-            # set new validation accuracy
-            last_val_acc = source_res.val_acc
             print(f"Source dataset Train Loss: {source_res.train_loss:.4f} Train Acc: {source_res.train_acc:.4f}\n"
                   f"Source dataset Val Loss: {source_res.val_loss:.4f} Val Acc: {source_res.val_acc:.4f}\n")
         else:
@@ -219,6 +217,10 @@ def train_adaptive_model(
             device,
             verbose=verbose
         )
+
+        # set new validation accuracy
+        last_val_acc = target_res.val_acc
+        
         target_history = lib.torch_train_eval.update_save_history(
             target_history, target_res, output_history_path_target
         )
