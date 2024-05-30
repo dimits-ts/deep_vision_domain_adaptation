@@ -1,4 +1,3 @@
-from torch.utils.data.sampler import SubsetRandomSampler
 import torch
 import numpy as np
 from tqdm.auto import tqdm
