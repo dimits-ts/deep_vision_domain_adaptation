@@ -49,19 +49,35 @@ class ImageDataset(torch.utils.data.Dataset):
         self._load_dataset_paths(data_dir)
 
     def add(self, image_path: str, encoded_label: int) -> None:
+        """
+        Add a sample to the dataset.
+
+        :param image_path: Path to the image file.
+        :type image_path: str
+        :param encoded_label: Encoded label of the image.
+        :type encoded_label: int
+        :return: None
+        """
         self._insert_sample(image_path, encoded_label)
 
-    def remove(self, image_path: str):
+    def remove(self, image_path: str) -> None:
+        """
+       Remove a sample from the dataset.
+
+       :param image_path: Path to the image file.
+       :type image_path: str
+       :return: None
+       """
         if image_path in self.paths:
             self.paths.remove(image_path)
             self.samples = [sample for sample in self.samples if sample[0] != image_path]
         else:
             print("Warning: Removal failed: could not find ", image_path, " in the dataset.")
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple[torch.Tensor, int]:
         image_path, label = self.samples[idx]
         image = self.parser_func(image_path)
         image = self.preprocessing_func(image)
@@ -71,7 +87,16 @@ class ImageDataset(torch.utils.data.Dataset):
 
         return image, label
 
-    def _insert_sample(self, image_path: str, encoded_label: int):
+    def _insert_sample(self, image_path: str, encoded_label: int) -> None:
+        """
+        Insert a sample into the dataset.
+
+        :param image_path: Path to the image file.
+        :type image_path: str
+        :param encoded_label: Encoded label of the image.
+        :type encoded_label: int
+        :return: None
+        """
         if image_path not in self.paths:
             self.paths.add(image_path)
             self.samples.append((image_path, encoded_label))
@@ -99,20 +124,39 @@ class ImageDataset(torch.utils.data.Dataset):
 
 
 class UnlabeledImageDataset(ImageDataset):
+    """
+    Dataset for unlabeled images.
+    Inherits from ImageDataset and hides the labels during retrieval.
+    """
 
     def __init__(
             self,
             parser_func: Callable,
             preprocessing_func: Callable[[np.ndarray], np.ndarray],
     ):
+        """
+       Initializes the UnlabeledImageDataset.
+
+       :param parser_func: Function to parse images.
+       :type parser_func: Callable
+       :param preprocessing_func: Function to preprocess images.
+       :type preprocessing_func: Callable[[numpy.ndarray], numpy.ndarray]
+       """
         super().__init__(parser_func=parser_func, preprocessing_func=preprocessing_func, label_encoder=None)
 
-    def load_from_image_dataset(self, dataset: ImageDataset):
+    def load_from_image_dataset(self, dataset: ImageDataset) -> None:
+        """
+        Load samples from an existing ImageDataset.
+
+        :param dataset: The source ImageDataset.
+        :type dataset: ImageDataset
+        :return: None
+        """
         for image_path, _ in dataset.samples:
             self.paths.add(image_path)
         self.samples = dataset.samples
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple[torch.Tensor, str]:
         # hide label
         image_path, _ = self.samples[idx]
         image = self.parser_func(image_path)
@@ -125,7 +169,15 @@ class UnlabeledImageDataset(ImageDataset):
         return image, image_path
 
 
-def collate_pad(batch):
+def collate_pad(batch: list[tuple[torch.Tensor, int]]) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Pad images in the batch to match the maximum height and width.
+
+    :param batch: Batch of images and their labels.
+    :type batch: list[tuple[torch.Tensor, int]]
+    :return: Padded images and their labels.
+    :rtype: tuple[torch.Tensor, torch.Tensor]
+    """
     # Sort the batch by image height in descending order
     batch = sorted(batch, key=lambda x: x[0].shape[1], reverse=True)
 
@@ -158,8 +210,16 @@ def train_val_test_split(
         dataset: ImageDataset, val_ratio: float, test_ratio: float
 ):
     """
-    Splits into pure ImageDataset objects, not Subsets, to allow for dynamic changes in the
-    underlying data using the custom class API.
+    Split a dataset into training, validation, and test sets.
+
+    :param dataset: The dataset to split.
+    :type dataset: ImageDataset
+    :param val_ratio: Proportion of the dataset to include in the validation set.
+    :type val_ratio: float
+    :param test_ratio: Proportion of the dataset to include in the test set.
+    :type test_ratio: float
+    :return: Training, validation, and test datasets.
+    :rtype: tuple[ImageDataset, ImageDataset, ImageDataset]
     """
     train_ratio = 1 - val_ratio - test_ratio
 
@@ -199,6 +259,18 @@ def train_val_test_split(
 def stratified_split(
         image_dataset: ImageDataset, test_size=0.2, random_state=None
 ) -> tuple[ImageDataset, ImageDataset]:
+    """
+    Split a dataset into training and test sets while preserving the class distribution.
+
+    :param image_dataset: The dataset to split.
+    :type image_dataset: ImageDataset
+    :param test_size: Proportion of the dataset to include in the test set, defaults to 0.2.
+    :type test_size: float, optional
+    :param random_state: Random state for reproducibility, defaults to None.
+    :type random_state: int, optional
+    :return: Training and test datasets.
+    :rtype: tuple[ImageDataset, ImageDataset]
+    """
     data = image_dataset.samples
     # Extract class labels
     labels = [class_id for _, class_id in data]

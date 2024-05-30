@@ -16,12 +16,39 @@ import lib.torch_train_eval
 
 # from https://openaccess.thecvf.com/content_cvpr_2018/CameraReady/1410.pdf section 4.1
 def adaptive_threshold(classification_accuracy: float, rho: float = 3) -> float:
+    """
+    Calculate an adaptive threshold based on classification accuracy
+    as defined in https://openaccess.thecvf.com/content_cvpr_2018/CameraReady/1410.pdf section 4.1.
+
+    :param classification_accuracy: Accuracy of the classification model.
+    :type classification_accuracy: float
+    :param rho: Parameter that controls the steepness of the sigmoid function, defaults to 3.
+    :type rho: float, optional
+    :return: Calculated adaptive threshold.
+    :rtype: float
+    """
     return 1 / (1 + np.exp(-rho * classification_accuracy))
 
 
 def select_samples(
         model: nn.Module, dataset, threshold: float, device: str, verbose: bool=True
 ) -> tuple[list[str], list[int]]:
+    """
+    Select samples from the dataset with confidence higher than the given threshold.
+
+    :param model: The model used for prediction.
+    :type model: nn.Module
+    :param dataset: The dataset to select samples from.
+    :type dataset: Dataset
+    :param threshold: Confidence threshold for selecting samples.
+    :type threshold: float
+    :param device: Device to perform computations on (e.g., 'cpu', 'cuda').
+    :type device: str
+    :param verbose: Whether to display a progress bar, defaults to True.
+    :type verbose: bool, optional
+    :return: Lists of selected sample file paths and their predicted labels.
+    :rtype: tuple[list[str], list[int]]
+    """
     model.eval()
     
     selected_samples_ls = []
@@ -70,13 +97,54 @@ def train_adaptive_model(
         rho=3,
         previous_source_history: dict[str, list[float]] = None,
         previous_target_history: dict[str, list[float]] = None,
-        verbose: bool=True
+        verbose: bool = True
 ) -> tuple[
     nn.Module,
     dict[str, np.ndarray],
     dict[str, np.ndarray],
     list[list[tuple[str, int]]],
 ]:
+    """
+    Train an adaptive model with pseudo-labeling on target domain data.
+
+    :param model: The model to be trained.
+    :type model: nn.Module
+    :param criterion: Loss function.
+    :param optimizer: Optimizer for model parameters.
+    :param scheduler: Learning rate scheduler.
+    :param device: Device to perform computations on (e.g., 'cpu', 'cuda').
+    :type device: str
+    :param source_train_dataset: Labeled training dataset from the source domain.
+    :type source_train_dataset: lib.data.ImageDataset
+    :param source_val_dataset: Labeled validation dataset from the source domain.
+    :type source_val_dataset: lib.data.ImageDataset
+    :param labeled_dataloader_initializer: Function to initialize a DataLoader for labeled data.
+    :type labeled_dataloader_initializer: Callable[[lib.data.ImageDataset], torch.utils.data.DataLoader]
+    :param unlabeled_dataloader_initializer: Function to initialize a DataLoader for unlabeled data.
+    :type unlabeled_dataloader_initializer: Callable[[lib.data.UnlabeledImageDataset], torch.utils.data.DataLoader]
+    :param unlabeled_target_train_dataset: Unlabeled training dataset from the target domain.
+    :type unlabeled_target_train_dataset: lib.data.UnlabeledImageDataset
+    :param target_val_dataset: Labeled validation dataset from the target domain.
+    :type target_val_dataset: lib.data.ImageDataset
+    :param output_dir: Directory to save model checkpoints and history.
+    :type output_dir: str
+    :param num_epochs: Number of training epochs, defaults to 25.
+    :type num_epochs: int, optional
+    :param gradient_accumulation: Number of steps to accumulate gradients before updating model parameters, defaults to 1.
+    :type gradient_accumulation: int, optional
+    :param pseudo_sample_period: Frequency (in epochs) to perform pseudo-labeling, defaults to 1.
+    :type pseudo_sample_period: int, optional
+    :param rho: Parameter for adaptive threshold calculation, defaults to 3.
+    :type rho: int, optional
+    :param previous_source_history: Training history for the source domain, defaults to None.
+    :type previous_source_history: dict[str, list[float]], optional
+    :param previous_target_history: Training history for the target domain, defaults to None.
+    :type previous_target_history: dict[str, list[float]], optional
+    :param verbose: Whether to display detailed training progress, defaults to True.
+    :type verbose: bool, optional
+    :return: Tuple containing the trained model, source domain history, target domain history, and pseudo-label history.
+    :rtype: tuple[nn.Module, dict[str, np.ndarray], dict[str, np.ndarray], list[list[tuple[str, int]]]]
+    """
     # a list containing the selected pseudo labeled samples for each epoch
     pseudo_label_history = []
     unlabeled_target_train_dataset = copy.deepcopy(unlabeled_target_train_dataset)
