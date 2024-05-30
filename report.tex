@@ -11,6 +11,10 @@
 \usepackage{algpseudocode}
 \usepackage{mathtools}
 \usepackage[a4paper,margin=1in,footskip=0.25in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
 % \pagenumbering{arabic}
 
 \graphicspath{ {./images/} }
@@ -168,9 +172,39 @@
 	
 	We monitor two metrics for each of these models; the performance on the target test set, and the rate of pseudo-labeling misclassifications. Of course, the latter practically necessitates the a-priori knowledge of the pseudo-labeled samples' labels. We thus use this metric \textbf{only} as a post-analysis metric to demonstrate the efficiency of pseudo-labeling for each model and dataset, and \textbf{not as a validation metric} to tune the model's training. Our experience does suggest however that performing this procedure on a validation set can significantly help in both tuning hyperparameters, and diagnosing issues during training.
 	
-	We use the ResNet-18 \cite{resnet} model for all experiments trained with the Adam optimizer ($lr=0.0005$) and using label smoothing ($\alpha = 0.15$). For the MNIST/MNIST-M dataset in particular, we use the pytorch AdamW implementation with $weight_decay = 10^{-3}$. Each ResNet model is pretrained on the ImageNet \cite{imagenet} dataset, before being finetuned on our respective source datasets. Datasets for both domains are randomly split in a 70\%-15\%-15\% training-validation-test split.
+	We use the ResNet-18 \cite{resnet} model for all experiments trained with the Adam optimizer ($lr=0.0005$) and using label smoothing ($\alpha = 0.15$). For the MNIST/MNIST-M dataset in particular, we use the pytorch AdamW implementation with $weight_decay = 10^{-3}$. We set the adaptive threshold rate $\rho = 3$ as in its original paper \cite{ican}. Each ResNet model is pretrained on the ImageNet \cite{imagenet} dataset, before being finetuned on our respective source datasets. Datasets for both domains are randomly split in a 70\%-15\%-15\% training-validation-test split.
+	
 	
 	\subsection{Results}
+	
+	Table \ref{tab:comparison} presents the performance of various domain adaptation methods on the MNIST/MNIST-M and ModernOffice-31 datasets, highlighting the effectiveness of different training approaches. For the MNIST/MNIST-M dataset, the Source-only method yields a low accuracy of 33\%, underscoring the challenges of domain shift. In contrast, the Target-only method achieves a high accuracy of 97\%, illustrating the upper bound of performance when extensive labeled target data is available. Unsupervised adaptation slightly improves the accuracy to 37\%, demonstrating some benefit but indicating the limitations of purely unsupervised approaches. Supervised methods with 10\% labeled target data achieve high accuracies of 91\% without incremental learning and 94\% with incremental learning, showing the same rate of improvement with the source-only model. Similarly, using 20\% labeled target data yields accuracies of 93\% for both incremental and non-incremental approaches, indicating that when extensive labeled data are present, pseudo-labeling does not yield any improvements in efficiency.
+	
+	For the Modern Office-31 dataset, the Source-only method achieves a mere 12\% accuracy, again highlighting domain adaptation challenges. The Target-only method is marked as untrainable, due to the very limited number of target samples. Unsupervised adaptation improves accuracy to 25\%, suggesting some domain alignment. Supervised approaches with 10\% labeled target data achieve 23\% accuracy without incremental learning and 16\% with it, suggesting that incremental learning may not always be beneficial. With 20\% labeled target data, the accuracies are 34\% and 33\% for non-incremental and incremental learning, respectively, indicating a notable improvement over unsupervised methods. 
+
+	
+	
+	\begin{table}[h!]
+		\centering
+		\renewcommand{\arraystretch}{1.5}
+		\begin{tabular}{>{\raggedright}p{3.5cm} >{\centering}p{5cm} >{\centering\arraybackslash}p{5cm}}
+			\toprule
+			& \textbf{MNIST/MNIST-M} & \textbf{Modern Office-31} \\
+			\midrule
+			\rowcolor{gray!20} \textbf{Source-only} & 33\% & 12\%\\
+			\textbf{Target-only} & 97\% & Untrainable \\
+			\rowcolor{gray!20} \textbf{Unsupervised} & 37\% & 25\%\\
+			\textbf{Supervised 10\%} & 91\% & 23\%\\
+			\rowcolor{gray!20}\textbf{Supervised 10\% + pseudo-labeling} & 94\% & 16\% \\
+			\textbf{Supervised 20\%} & 93\% & 34\% \\
+			\rowcolor{gray!20} \textbf{Supervised 20\% + pseudo-labeling} & 93\% & 33\% \\
+			\bottomrule
+		\end{tabular}
+		\caption{Comparison of different methods on MNIST/MNIST-M and ModernOffice-31}
+		\label{tab:comparison}
+	\end{table}
+	
+
+	
 	
 	\printbibliography
 \end{document}
