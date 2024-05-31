@@ -65,7 +65,7 @@
 		\frac{t-T_1}{T_2-T_1}\alpha_f & \text{if } T_1 \leq t \leq T_2 \\
 		\alpha_f & \text{if } T_2 < t
 	\end{cases}$
-	where $T_1, T_2, \alpha_f$ hyperparameters. This approach however requires the definition of multiple hyperparameters, requiring the existence of an extensive target validation set, which is usually hard to construct, given the problem formulation of domain adaptation. \cite{ican} propose a different method of scheduling the source and target dataset losses, which we elaborate on later in this paper.
+	where $T_1, T_2, \alpha_f$ hyperparameters. This approach however requires the definition of multiple hyperparameters, requiring the existence of an extensive target validation set, which is usually hard to construct, given the problem formulation of domain adaptation. \cite{three-models} propose a standard    training loop, while selecting samples based on majority vote by two independent classifiers with artificially distinct feature distributions. While promising, this requires the separate training of 3 models, effectively tripling computational costs. \cite{ican} propose a different method of scheduling the source and target dataset losses, which we elaborate on later in this paper.
 	
 	Finally, \cite{pseudo-label-evaluation} denote a number of important steps towards correctly evaluating pseudo-labeling algorithms. Notably, they stress the importance of not over-tweaking hyperparameters since, as stated above, large validation steps are unrealistic in domain adaptation tasks. They also note that these algorithms need to also be evaluated on dataset with significant distribution shift between the two domains, since those are the cases where pseudo-labeling techniques are especially vulnerable.
 	
