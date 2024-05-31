@@ -7,6 +7,8 @@ import torch
 import tasks.utils
 import lib.torch_train_eval
 
+import os
+
 
 def count_misclassifications(label_history, encodings):
     misclassifications = []
@@ -32,7 +34,7 @@ def count_misclassifications(label_history, encodings):
     return misclassifications
 
 
-def plot_label_history(label_history, encodings):
+def plot_label_history(label_history, encodings, ax=None):
     misclassifications = count_misclassifications(label_history, encodings)
     label_counts = [len(x) for x in label_history]
 
@@ -43,20 +45,22 @@ def plot_label_history(label_history, encodings):
         + ["Misclassified samples"] * len(misclassifications),
     }
 
+    if ax is None:
+        ax = plt.gca()
+
     sns.lineplot(
-        x="Sampling period", y="Count", hue="Type", data=data_label, marker="o"
+        x="Sampling period", y="Count", hue="Type", data=data_label, marker="o", ax=ax
     )
 
     # y-ticks integers only
-    plt.gca().yaxis.get_major_locator().set_params(integer=True)
+    ax.yaxis.get_major_locator().set_params(integer=True)
 
-    plt.xlabel("Sampling period")
-    plt.ylabel("Pseudolabeled samples selected")
-    plt.title("Label History")
-    plt.legend(title="Type")
+    ax.set_xlabel("Sampling period")
+    ax.set_ylabel("Pseudolabeled samples selected")
+    ax.set_title("Label History")
+    ax.legend(title="Type")
 
-    plt.grid(True)
-    plt.show()
+    ax.grid(True)
 
 
 def learning_curves_loss(history) -> None:
@@ -142,7 +146,8 @@ def plot_classification_matrices(
     axes = axes.ravel()
 
     for idx, (model_dir, title) in enumerate(model_dirs):
-        tasks.utils.try_load_weights(model, model_dir)
+        model_path = os.path.join(model_dir, "model.pt")
+        tasks.utils.try_load_weights(model, model_path)
         actual, predicted = lib.torch_train_eval.test(
             model, target_test_loader, device
         )
@@ -161,4 +166,26 @@ def plot_classification_matrices(
         plt.savefig(save_path, bbox_inches="tight")
         print(f"Figured saved to " + save_path)
 
+    plt.show()
+
+
+def plot_label_history_grid(model_dirs, encodings, rows, cols, save_path=None):
+    fig, axes = plt.subplots(rows, cols, figsize=(12, 12))
+    axes = axes.ravel()
+
+    for idx, (model_dir, title) in enumerate(model_dirs):
+        res = tasks.utils.load_trained_model(torch.nn.Module(), model_dir)
+        label_history = res["label_history"]
+        plot_label_history(label_history, encodings, ax=axes[idx])
+        axes[idx].set_title(title)
+
+    fig.suptitle("Label History of Models")
+    plt.tight_layout()
+
+    if save_path:
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
+        plt.savefig(save_path, bbox_inches="tight")
+        print(f"Figure saved to {save_path}")
+    
     plt.show()
