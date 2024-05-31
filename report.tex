@@ -18,7 +18,7 @@
 \usepackage{hyperref}
 % \pagenumbering{arabic}
 
-\graphicspath{ {./images/} }
+\graphicspath{ {./results/} }
 \addbibresource{refs.bib}
 
 \newcommand{\loss}{\mathcal{L}}
@@ -26,7 +26,7 @@
 
 \def\code#1{\texttt{#1}}
 
-\title{\Huge Do It Yourself: Generic Pseudo-labeling for Domain Adaptation in Deep Image Classification}
+\title{\Huge Investigating Pseudo-labeling Performance Sans Supporting Algorithms and Models}
 
 \author{\LARGE Tsirmpas Dimitris}
 
@@ -201,6 +201,10 @@
 	Table \ref{tab:comparison} presents the performance of various domain adaptation methods on the MNIST/MNIST-M and ModernOffice-31 datasets, highlighting the effectiveness of different training approaches. For the MNIST/MNIST-M dataset, the Source-only method yields a low accuracy of 33\%, underscoring the challenges of domain shift. In contrast, the Target-only method achieves a high accuracy of 97\%, illustrating the upper bound of performance when extensive labeled target data is available. Unsupervised adaptation slightly improves the accuracy to 37\%, demonstrating some benefit but indicating the limitations of purely unsupervised approaches. Supervised methods with 10\% labeled target data achieve high accuracies of 91\% without incremental learning and 94\% with incremental learning, showing the same rate of improvement with the source-only model. Similarly, using 20\% labeled target data yields accuracies of 93\% for both incremental and non-incremental approaches, indicating that when extensive labeled data are present, pseudo-labeling does not yield any improvements in efficiency.
 	
 	For the Modern Office-31 dataset, the Source-only method achieves a mere 12\% accuracy, again highlighting domain adaptation challenges. The Target-only method is marked as untrainable, due to the very limited number of target samples. Unsupervised adaptation improves accuracy to 25\%, suggesting some domain alignment. Supervised approaches with 10\% labeled target data achieve 23\% accuracy without incremental learning and 16\% with it, suggesting that incremental learning may not always be beneficial. With 20\% labeled target data, the accuracies are 34\% and 33\% for non-incremental and incremental learning, respectively, indicating a notable improvement over unsupervised methods. 
+	
+	Figures \ref{fig::office_confusion}, \ref{fig::mnist_confusion} show the confusion matrices for the Modern Office-31 Webcam and MNIST-M test sets respectively. Each figure contains the respective matrices for each model using the incremental learning algorithm. Note that the Unsupervised approach seems to yield significant improvements, preventing the model from classifying all target-domain samples in one class, as seen in Figure \ref{fig::office_confusion}. The Semi-Supervised-10 and Semi-Supervised-20 models further refine these classifications.
+	
+	Figures \ref{fig::office_misclassifications}, \ref{fig::mnist_misclassifications} on the other hand, display the number of selected pseudo-labeled samples for each sampling period ($N_{period}=20$), as well as the rate of misclassifications for the Modern Office-31 Webcam and MNIST-M test sets respectively. The selection pattern for the Modern Office-31: samples Webcam is different for each of the three models, as seen in Figure \ref{fig::office_misclassifications}. The unsupervised model is able to consistently classify samples correctly at a steady rate, while the semi-supervised models seem to significantly suffer from misclassifications from the 2nd sampling period and on-wards. Of note is that the Semi-Supervised-20 model correctly classifies an extensive number of samples at the first sampling period (90 samples vs 10-15 from the other models). This can be explained by the model being able to recognize instantly all the easily-classifiable samples in the unlabeled dataset, and thus struggles to classify the rest for the rest of the training period. Results on the MNIST-M dataset are much more stable, likely owning to the greater similarity between distributions. As shown in Figure \ref{fig::mnist_misclassifications}, all three models are adept at selecting correctly large number of samples, although the sampling efficiency does eventually fall. It's worth noting that in both datasets, a substantial amount of the target dataset ends up being used, although never the entire target-domain train set.
 
 	
 
@@ -224,7 +228,33 @@
 		\label{tab:comparison}
 	\end{table}
 	
+	\begin{figure}
+		\centering
+		\includegraphics[width=12cm]{"office_cls_matrix.jpeg"}
+		\caption{Confusion matrix for the target-domain (Modern Office-31: Webcam) test set.}
+		\label{fig::office_confusion}
+	\end{figure}
 
+	\begin{figure}
+		\centering
+		\includegraphics[width=12cm]{"mnist_cls_matrix.jpeg"}
+		\caption{Confusion matrix for the target-domain (MNIST-M) test set.}
+		\label{fig::mnist_confusion}
+	\end{figure}
+
+	\begin{figure}
+		\centering
+		\includegraphics[width=12cm]{"office_misclassifications.jpeg"}
+		\caption{Pseudo-labeled samples from the unlabeled target domain (Modern Office-31: Webcam) selected during the incremental learning algorithm.}
+		\label{fig::office_misclassifications}
+	\end{figure}
+
+	\begin{figure}
+		\centering
+		\includegraphics[width=12cm]{"mnist_misclassifications.jpeg"}
+		\caption{Pseudo-labeled samples from the unlabeled target domain (MNIST-M) selected during the incremental learning algorithm.}
+		\label{fig::mnist_misclassifications}
+	\end{figure}
 	
 	
 	\printbibliography

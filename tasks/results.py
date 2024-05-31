@@ -49,7 +49,12 @@ def plot_label_history(label_history, encodings, ax=None):
         ax = plt.gca()
 
     sns.lineplot(
-        x="Sampling period", y="Count", hue="Type", data=data_label, marker="o", ax=ax
+        x="Sampling period",
+        y="Count",
+        hue="Type",
+        data=data_label,
+        marker="o",
+        ax=ax,
     )
 
     # y-ticks integers only
@@ -140,9 +145,10 @@ def plot_classification_matrices(
     device: str,
     rows: int,
     cols: int,
+    figsize: tuple[float, float] = (12, 12),
     save_path: str = None,
 ):
-    fig, axes = plt.subplots(rows, cols, figsize=(12, 12))
+    fig, axes = plt.subplots(rows, cols, figsize=figsize)
     axes = axes.ravel()
 
     for idx, (model_dir, title) in enumerate(model_dirs):
@@ -169,8 +175,15 @@ def plot_classification_matrices(
     plt.show()
 
 
-def plot_label_history_grid(model_dirs, encodings, rows, cols, save_path=None):
-    fig, axes = plt.subplots(rows, cols, figsize=(12, 12))
+def plot_label_history_grid(
+    model_dirs,
+    encodings,
+    rows,
+    cols,
+    figsize: tuple[float, float] = (12, 12),
+    save_path=None,
+):
+    fig, axes = plt.subplots(rows, cols, figsize=figsize)
     axes = axes.ravel()
 
     for idx, (model_dir, title) in enumerate(model_dirs):
@@ -187,5 +200,5 @@ def plot_label_history_grid(model_dirs, encodings, rows, cols, save_path=None):
             os.makedirs(os.path.dirname(save_path))
         plt.savefig(save_path, bbox_inches="tight")
         print(f"Figure saved to {save_path}")
-    
+
     plt.show()
