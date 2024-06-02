@@ -54,7 +54,9 @@
 	
 	\section{Related Works}
 	
-	Pseudo-labeling was first introduced to DNNs by \cite{pseudo-label-original}. The assumption behind the procedure is that data points are clustered according to their class, which the discriminator needs to find the border of. By using pseudo-labeling, the discriminator can refine the border regions of these clusters by gradually including data points further and further from the cluster's center. Thus, pseudo-labeling can be seen as a form of Entropy Regularization \cite{entropy-regularization}.
+	Many methods have been proven to work for the task of domain-adaptation. Two of the most intuitive and direct solutions were those of Deep Correlation Alignment (CORAL) \parencite{coral}, used frequently in modern research for the creation of solid baseline models, and pseudo-labeling.
+	
+	Pseudo-labeling was first introduced to DNNs by \cite{pseudo-label-original}. The assumption behind the procedure is that data points are clustered according to their class, which the discriminator needs to find the border of. By using pseudo-labeling, the discriminator can refine the border regions of these clusters by gradually including data points further and further from the cluster's center. Thus, pseudo-labeling can be seen as a form of Entropy Regularization \parencite{entropy-regularization}.
 	
 	One of the ways where pseudo-labeling fails was explored by \cite{pseudo-label-evaluation}. As demonstrated in the "twins-moons" dataset, should the initial clusters not be evaluated correctly at the beginning of the algorithm, the discriminator could learn an entirely wrong decision boundary. A classic example of this happening would be very few initial samples being used during training. In the context of domain adaptation however, it could also be caused by a sufficiently large gap between the source and target distributions.
 	
@@ -67,7 +69,7 @@
 	\end{cases}$
 	where $T_1, T_2, \alpha_f$ hyperparameters. This approach however requires the definition of multiple hyperparameters, requiring the existence of an extensive target validation set, which is usually hard to construct, given the problem formulation of domain adaptation. \cite{three-models} propose a standard    training loop, while selecting samples based on majority vote by two independent classifiers with artificially distinct feature distributions. While promising, this requires the separate training of 3 models, effectively tripling computational costs. \cite{ican} propose a different method of scheduling the source and target dataset losses, which we elaborate on later in this paper.
 	
-	Finally, \cite{pseudo-label-evaluation} denote a number of important steps towards correctly evaluating pseudo-labeling algorithms. Notably, they stress the importance of not over-tweaking hyperparameters since, as stated above, large validation steps are unrealistic in domain adaptation tasks. They also note that these algorithms need to also be evaluated on dataset with significant distribution shift between the two domains, since those are the cases where pseudo-labeling techniques are especially vulnerable.
+	Finally, \cite{pseudo-label-evaluation} denote a number of important steps towards correctly evaluating pseudo-labeling algorithms. Notably, they stress the importance of not over-tweaking hyperparameters since, as stated above, large validation steps are unrealistic in domain adaptation tasks. They also note that these algorithms need to be evaluated on datasets with significant distribution shift between the two domains, since those are the cases where pseudo-labeling techniques are especially vulnerable.
 	
 	
 	\section{Pseudo-labeling for Classification Enhancement}
@@ -185,7 +187,7 @@
 	
 	\subsection{Experimental Setup}
 	
-	For each domain adaptation task we produce two models, one trained on the source dataset and one on the target dataset, as baselines. These models serve as the lower and upper bounds of the classifiers' performance respectively.
+	For each domain adaptation task we produce three models as baselines; one trained on the source dataset, one on the target dataset, and one using Deep Correlation Alignment \parencite{coral} (referred to as "CORAL model" in this section) during training. The first two models serve as the lower and upper bounds of the classifiers' performance respectively, while the CORAL model represents as a useful comparison with a separate, robust and frequently used domain-adaptation algorithm.
 	
 	We then finetune three pretrained models on different source datasets; $D_{source}$ (unsupervised), $\tilde{D}_{source_{10}} = D_{source} \cup D_{labeled\_target_{10}}$ and $\tilde{D}_{source_{20}} = D_{source} \cup D_{labeled\_target_{20}}$ (semi-supervised), where $D_{labeled\_target_{\chi}}$ is a random, labeled sample from the target dataset, with $\chi\%$ samples. The finetuned models are then used as input for the incremental learning algorithm outlined in Section \ref{ssec:our-algorithm}.
 	
@@ -198,9 +200,9 @@
 	
 	\subsection{Results}
 	
-	Table \ref{tab:comparison} presents the performance of various domain adaptation methods on the MNIST/MNIST-M and ModernOffice-31 datasets, highlighting the effectiveness of different training approaches. For the MNIST/MNIST-M dataset, the Source-only method yields a low accuracy of 33\%, underscoring the challenges of domain shift. In contrast, the Target-only method achieves a high accuracy of 97\%, illustrating the upper bound of performance when extensive labeled target data is available. Unsupervised adaptation slightly improves the accuracy to 37\%, demonstrating some benefit but indicating the limitations of purely unsupervised approaches. Supervised methods with 10\% labeled target data achieve high accuracies of 91\% without incremental learning and 94\% with incremental learning, showing the same rate of improvement with the source-only model. Similarly, using 20\% labeled target data yields accuracies of 93\% for both incremental and non-incremental approaches, indicating that when extensive labeled data are present, pseudo-labeling does not yield any improvements in efficiency.
+	Table \ref{tab:comparison} presents the performance of various domain adaptation methods on the MNIST/MNIST-M and ModernOffice-31 datasets, highlighting the effectiveness of different training approaches. For the MNIST/MNIST-M dataset, the Source-only method yields a low accuracy of 33\% in contrast with the Target-only method, which achieves a high accuracy of 97\%. This comparison showcases the challenges of domain shift even in datasets with relatively similar distributions. Unsupervised adaptation slightly improves the accuracy to 37\%, demonstrating some benefit but indicating the limitations of purely unsupervised approaches. Supervised methods with a few labeled target data achieve high accuracies of 91\% without incremental learning and 94\% with incremental learning, showing the same rate of improvement with the source-only model. Similarly, using more labeled target data yields accuracies of 93\% for both incremental and non-incremental approaches, indicating that when extensive labeled data are present, pseudo-labeling does not yield any improvements in efficiency.
 	
-	For the Modern Office-31 dataset, the Source-only method achieves a mere 12\% accuracy, again highlighting domain adaptation challenges. The Target-only method is marked as untrainable, due to the very limited number of target samples. Unsupervised adaptation improves accuracy to 25\%, suggesting some domain alignment. Supervised approaches with 10\% labeled target data achieve 23\% accuracy without incremental learning and 16\% with it, suggesting that incremental learning may not always be beneficial. With 20\% labeled target data, the accuracies are 34\% and 33\% for non-incremental and incremental learning, respectively, indicating a notable improvement over unsupervised methods. 
+	For the Modern Office-31 dataset, the Source-only method achieves a mere 12\% accuracy, highlighting the increased distribution shift between the datasets. The Target-only method is marked as untrainable, due to the very limited number of target samples. Surprisingly, the CORAL method also fails in a similar way, likely due to the larger distribution shift combined with the relatively difficult task and limited data points. We hypothesize that these factors prevent the model from both learning domain-invariant features and efficiently solving the base task. Unsupervised adaptation improves accuracy to 25\%, suggesting some domain alignment. Supervised approaches with a few labeled target data achieve 23\% accuracy without incremental learning and 16\% with it, suggesting that incremental learning may not always be beneficial. With more labeled target data, the accuracies are 34\% and 33\% for non-incremental and incremental learning, respectively, indicating a notable improvement over unsupervised methods. 
 	
 	Figures \ref{fig::office_confusion}, \ref{fig::mnist_confusion} show the confusion matrices for the Modern Office-31 Webcam and MNIST-M test sets respectively. Each figure contains the respective matrices for each model using the incremental learning algorithm. Note that the Unsupervised approach seems to yield significant improvements, preventing the model from classifying all target-domain samples in one class, as seen in Figure \ref{fig::office_confusion}. The Semi-Supervised-10 and Semi-Supervised-20 models further refine these classifications.
 	
@@ -217,11 +219,12 @@
 			\midrule
 			\rowcolor{gray!20} \textbf{Source-only} & 33\% & 12\%\\
 			\textbf{Target-only} & 97\% & Untrainable \\
-			\rowcolor{gray!20} \textbf{Unsupervised} & 37\% & 25\%\\
-			\textbf{Supervised 10\%} & 91\% & 23\%\\
-			\rowcolor{gray!20}\textbf{Supervised 10\% + pseudo-labeling} & 94\% & 16\% \\
-			\textbf{Supervised 20\%} & 93\% & 34\% \\
-			\rowcolor{gray!20} \textbf{Supervised 20\% + pseudo-labeling} & 93\% & 33\% \\
+			\rowcolor{gray!20} 	\textbf{CORAL model} & 94\% & Untrainable \\
+			\textbf{Unsupervised pseudo-labeling} & 37\% & 25\% \\
+			\rowcolor{gray!20}\textbf{Supervised 10\%} & 91\% & 23\%\\
+			\textbf{Supervised 10\% + pseudo-labeling} & 94\% & 16\% \\
+			\rowcolor{gray!20}\textbf{Supervised 20\%} & 93\% & 34\% \\
+			\textbf{Supervised 20\% + pseudo-labeling} & 93\% & 33\% \\
 			\bottomrule
 		\end{tabular}
 		\caption{Comparison of different methods on MNIST/MNIST-M and Modern Office-31}
