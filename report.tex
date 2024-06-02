@@ -132,8 +132,14 @@
 	
 	We use the same \texttt{adaptive threshold} function used in the original paper, which adjusts the confidence threshold used to decide whether to pseudo-label a sample. The function is defined as $adaptive\_threshold(acc, \rho) = \frac{1}{1+e^{-\rho*acc}}$, where $acc$ is the accuracy of the classifier, and $\rho$ a tunable hyperparameter, with $\rho=3$ in the original paper. We evaluate the classifier accuracy on the validation set of the source dataset.
 	
-	Higher $\rho$ values lead to a steeper decision curve, as see in Figure. The $\rho$ parameter is thus a very convenient way of tuning the pseudo-labeling procedure; a high $\rho$ value leads to samples chosen conservatively, ensuring that more samples are correctly labeled, while lower values lead to more samples overall being chosen, but with more incorrect labels. Since our strategy does not involve re-labeling of pseudo-labeled samples, and because of the lack of external mechanisms to detect outliers, we recommend that $\rho \in [3,4]$, although the value is dependent on the datasets and underlying classifier.
-	%TODO: include figure
+	Higher $\rho$ values lead to a steeper decision curve, as see in Figure. The $\rho$ parameter is thus a very convenient way of tuning the pseudo-labeling procedure; a high $\rho$ value leads to samples chosen conservatively, ensuring that more samples are correctly labeled, while lower values lead to more samples overall being chosen, but with more incorrect labels. Since our strategy does not involve re-labeling of pseudo-labeled samples, and because of the lack of external mechanisms to detect outliers, we recommend that $\rho \in [3,4]$, although the value is dependent on the datasets and underlying classifier. The selected threshold as a function of the classifier's source validation accuracy can be found in Figure \ref{fig::adaptive_comparison}.
+	
+	\begin{figure}
+		\centering
+		\includegraphics[width=12cm]{"adaptive_threshold.jpeg"}
+		\caption{Required confidence score for a pseudo-labeled sample to be selected for training. Note the sigmoid shape, and the effect of $\rho$ on the curve's steepness.}
+		\label{fig::adaptive_comparison}
+	\end{figure}
 	
 	Overall, the adaptive threshold function provides us with an easy-to-understand mechanism which both adapts to the current state of the model, and which can be tuned with a single hyperparameter. This hyperparameter however remains of crucial importance, and should be tuned either by the number of accepted samples, or if available, a target validation dataset which tracks the pseudo-labeling misclassifications.
 	
