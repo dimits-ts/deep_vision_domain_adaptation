@@ -206,10 +206,6 @@
 	
 	Figures \ref{fig::office_confusion}, \ref{fig::mnist_confusion} show the confusion matrices for the Modern Office-31 Webcam and MNIST-M test sets respectively. Each figure contains the respective matrices for each model using the incremental learning algorithm. Note that the Unsupervised approach seems to yield significant improvements, preventing the model from classifying all target-domain samples in one class, as seen in Figure \ref{fig::office_confusion}. The Semi-Supervised-10 and Semi-Supervised-20 models further refine these classifications.
 	
-	Figures \ref{fig::office_misclassifications}, \ref{fig::mnist_misclassifications} on the other hand, display the number of selected pseudo-labeled samples for each sampling period ($N_{period}=20$), as well as the rate of misclassifications for the Modern Office-31 Webcam and MNIST-M test sets respectively. The selection pattern for the Modern Office-31: samples Webcam is different for each of the three models, as seen in Figure \ref{fig::office_misclassifications}. The unsupervised model is able to consistently classify samples correctly at a steady rate, while the semi-supervised models seem to significantly suffer from misclassifications from the 2nd sampling period and on-wards. Of note is that the Semi-Supervised-20 model correctly classifies an extensive number of samples at the first sampling period (90 samples vs 10-15 from the other models). This can be explained by the model being able to recognize instantly all the easily-classifiable samples in the unlabeled dataset, and thus struggles to classify the rest for the rest of the training period. Results on the MNIST-M dataset are much more stable, likely owning to the greater similarity between distributions. As shown in Figure \ref{fig::mnist_misclassifications}, all three models are adept at selecting correctly large number of samples, although the sampling efficiency does eventually fall. It's worth noting that in both datasets, a substantial amount of the target dataset ends up being used, although never the entire target-domain train set.
-
-	
-
 	\begin{table}
 		\centering
 		\renewcommand{\arraystretch}{1.5}
@@ -237,14 +233,25 @@
 		\caption{Confusion matrix for the target-domain (Modern Office-31: Webcam) test set.}
 		\label{fig::office_confusion}
 	\end{figure}
-
+	
 	\begin{figure}
 		\centering
 		\includegraphics[width=12cm]{"mnist_cls_matrix.jpeg"}
 		\caption{Confusion matrix for the target-domain (MNIST-M) test set.}
 		\label{fig::mnist_confusion}
 	\end{figure}
+	
+	
+	\subsection{Performance impact of misclassifications}
+	
+	
+	Figures \ref{fig::office_misclassifications}, \ref{fig::mnist_misclassifications} display the number of selected pseudo-labeled samples for each sampling period ($N_{period}=20$), as well as the rate of misclassifications for the Modern Office-31 Webcam and MNIST-M test sets respectively. The selection pattern for the Modern Office-31: samples Webcam is different for each of the three models, as seen in Figure \ref{fig::office_misclassifications}. 
+	
+	The unsupervised model is able to consistently classify samples correctly at a steady rate, while the semi-supervised models seem to significantly suffer from misclassifications from the 2nd sampling period and on-wards. Of note is that the Semi-Supervised-20 model correctly classifies an extensive number of samples at the first sampling period (90 samples vs 10-15 from the other models). This can be explained by the model being able to recognize instantly all the easily-classifiable samples in the unlabeled dataset, and thus struggles to classify the rest for the rest of the training period. 
+	
+	Results on the MNIST-M dataset are much more stable, likely owning to the greater similarity between distributions. As shown in Figure \ref{fig::mnist_misclassifications}, all three models are adept at selecting correctly large number of samples, although the sampling efficiency does eventually fall. It's worth noting that in both datasets, a substantial amount of the target dataset ends up being used, although never the entire target-domain train set.
 
+	
 	\begin{figure}
 		\centering
 		\includegraphics[width=12cm]{"office_misclassifications.jpeg"}
