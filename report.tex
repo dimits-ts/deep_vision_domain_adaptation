@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[12pt, a4paper]{article}
 \usepackage{graphicx} % Required for inserting images
 \usepackage[style=numeric, citestyle=authoryear, backend=biber]{biblatex}
 \usepackage[greek, british]{babel}
@@ -31,13 +31,12 @@
 \author{\LARGE Tsirmpas Dimitris}
 
 \begin{document}
-	\begin{titlepage}
-		\maketitle
-		\thispagestyle{empty} % No page number on the first page
-			
-	\end{titlepage}
-	
+
 	\maketitle
+	\begin{abstract}
+	
+		Pseudo-labeling is a promising paradigm in semi-supervised learning for leveraging unlabeled data alongside limited labeled data. However, most state-of-the-art approaches rely on complex models and additional algorithms beyond pseudo-labeling itself. In this paper, we investigate a simpler approach to pseudo-labeling that minimizes training costs by only using the original model with minimal hyperparameter tuning. We evaluate the performance of our algorithm on the MNIST/MNIST-M and Modern Office-31 datasets, covering scenarios with varying degrees of domain shift between the source and target distributions. Our experiments reveal useful insights into the weaknesses of pseudo-labeling in the absence of supporting specialized algorithms. We find that while pseudo-labeling alone provides some benefit in the MNIST/MNIST-M case, it struggles significantly on the more challenging Modern Office-31 task. Importantly, we demonstrate that incorporating even a small amount of labeled target data during the initial pretraining phase can substantially improve the effectiveness of subsequent pseudo-labeling. Overall, our work highlights the potential and limitations of a simplified pseudo-labeling approach and emphasizes the importance of careful evaluation on datasets with significant distribution shifts.
+	\end{abstract}
 	
 	\pagenumbering{arabic} % Switch to Arabic numbering
 	
@@ -273,6 +272,15 @@
 		\caption{Pseudo-labeled samples from the unlabeled target domain (MNIST-M) selected during the incremental learning algorithm.}
 		\label{fig::mnist_misclassifications}
 	\end{figure}
+
+	\section{Conclusion}
+	
+	In this study, we have presented a modified version of the iCAN algorithm for unsupervised and semi-supervised domain adaptation tasks, specifically focusing on the MNIST/MNIST-M and Modern Office-31 datasets. Our experiments demonstrated the effectiveness of our modified algorithm in comparison to other domain adaptation methods, as well as the impact of misclassifications in the pseudo-labeling process.
+	
+	Our findings indicate that unsupervised pseudo-labeling can lead to improved performance on target-domain test sets, especially when the source and target distributions are relatively close, as in the MNIST/MNIST-M case. However, the effectiveness of unsupervised pseudo-labeling diminishes when the distributions are significantly different, as observed in the Modern Office-31 dataset. In such cases, incorporating a small amount of labeled target data during the initial pretraining phase can help alleviate the challenges associated with the distribution shift, yielding better performance than purely unsupervised methods. Additional labeled data however do not always lead to more effective learning by themselves.
+	
+	It is important to note that the performance of our modified algorithm is highly dependent on the choice of the adaptive threshold parameter, $\rho$. Proper tuning of this parameter is crucial to ensure the selection of high-confidence samples for training while avoiding incorrect pseudo-labeling. Additionally, our results suggest that the use of an adaptive threshold function could be further improved to prevent models from becoming overly confident and refusing to select samples in later iterations.
+
 	
 	\printbibliography
 \end{document}
